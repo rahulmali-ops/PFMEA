@@ -384,6 +384,35 @@
       margin-top: 4px;
     }
 
+    /* Empty state styling */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 40px;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 12px;
+      border: 2px dashed #cbd5e1;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 20px;
+      color: #475569;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
     /* ========== RESPONSIVE ========== */
     @media (max-width: 768px) {
       .navbar-container {
@@ -430,6 +459,10 @@
 
       main {
         padding: 16px;
+      }
+
+      .station-list {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -549,39 +582,67 @@
   let workingStations = [];
   let localActiveStationId = null;
 
+  // Load from localStorage or start with empty array
   const savedData = localStorage.getItem('ather_infrastructure');
   if (savedData) {
     workingStations = JSON.parse(savedData);
   } else {
-    workingStations = [
-      { id: 'GA-10', name: 'LH case Fill plug assembly', code: 'GA-10', operations: [] },
-      { id: 'GA-20', name: 'RH case bearing and LH case oil seal pressing', code: 'GA-20', operations: [] },
-      { id: 'GA-30', name: 'LH case bearing and RH case oil seal pressing', code: 'GA-30', operations: [] },
-      { id: 'GA-40', name: 'Dowel pin and gasket & gears assembly', code: 'GA-40', operations: [] },
-      { id: 'GA-50', name: 'Closing of LH & RH Gear case', code: 'GA-50', operations: [] },
-      { id: 'GA-60', name: 'LH & RH Gear case final torquing', code: 'GA-60', operations: [] },
-      { id: 'GA-70', name: 'Backlash checking and Leak test', code: 'GA-70', operations: [] },
-      { id: 'GA-90', name: 'Oil filling', code: 'GA-90', operations: [] },
-      { id: 'GA-100', name: 'Oil Drain plug tightening', code: 'GA-100', operations: [] },
-      { id: 'GA-110', name: 'EOL - NVH', code: 'GA-110', operations: [] }
-    ];
+    // Start with empty array - no default stations
+    workingStations = [];
     localStorage.setItem('ather_infrastructure', JSON.stringify(workingStations));
   }
 
   function renderMasterStations() {
     const container = document.getElementById('stationContainer');
     container.innerHTML = '';
-    workingStations.forEach(s => {
-      const btn = document.createElement('button');
-      btn.className = 'station-card-btn';
-      btn.onclick = () => showOperationsPanel(s.id);
-      btn.innerHTML = `
-        <div class="station-name">${s.name}</div>
-        <div class="station-code">${s.code}</div>
-        <div style="font-size:12px; margin-top:8px; color:var(--text-muted);">${s.operations?.length || 0} Operations Configured</div>
+    
+    // Show empty state if no stations exist
+    if (workingStations.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🏭</div>
+          <h3>No Stations Yet</h3>
+          <p>Get started by adding your first manufacturing station using the form below.<br>Define your production line layout and configure operations for each station.</p>
+        </div>
       `;
-      container.appendChild(btn);
+      return;
+    }
+    
+    workingStations.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'station-card-btn';
+      card.innerHTML = `
+        <div onclick="showOperationsPanel('${s.id}')" style="cursor: pointer;">
+          <div class="station-name">${s.name}</div>
+          <div class="station-code">${s.code}</div>
+          <div style="font-size:12px; margin-top:8px; color:var(--text-muted);">${s.operations?.length || 0} Operations Configured</div>
+        </div>
+        <button class="delete-btn" style="margin-top: 12px; width: 100%;" onclick="deleteStation('${s.id}', event)">🗑️ Delete Station</button>
+      `;
+      container.appendChild(card);
     });
+  }
+
+  // Function to delete a station
+  function deleteStation(stationId, event) {
+    event.stopPropagation(); // Prevent opening the operations panel
+    
+    const station = workingStations.find(s => s.id === stationId);
+    if (!station) return;
+    
+    const operationCount = station.operations?.length || 0;
+    const confirmMessage = operationCount > 0
+      ? `⚠️ Are you sure you want to delete "${station.name}"?\n\n` +
+        `This will also delete ${operationCount} operation(s).\n\n` +
+        `This action cannot be undone!`
+      : `Are you sure you want to delete "${station.name}"?\n\nThis action cannot be undone!`;
+    
+    if (confirm(confirmMessage)) {
+      workingStations = workingStations.filter(s => s.id !== stationId);
+      localStorage.setItem('ather_infrastructure', JSON.stringify(workingStations));
+      renderMasterStations();
+      showToast(`✅ Station "${station.name}" deleted successfully!`);
+    }
   }
 
   function showOperationsPanel(id) {
@@ -600,7 +661,7 @@
     const target = workingStations.find(s => s.id === localActiveStationId);
 
     if (!target.operations || target.operations.length === 0) {
-      opContainer.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding: 20px; text-align: center; background: #f8fafc; border-radius: 6px;">No operations added yet. Add your first operation using the form on the right.</div>';
+      opContainer.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding: 20px; text-align: center; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">No operations added yet. Add your first operation using the form on the right.</div>';
       return;
     }
 
@@ -621,10 +682,11 @@
   function deleteOperation(index) {
     if (confirm('Are you sure you want to delete this operation?')) {
       const target = workingStations.find(s => s.id === localActiveStationId);
+      const deletedOp = target.operations[index];
       target.operations.splice(index, 1);
       localStorage.setItem('ather_infrastructure', JSON.stringify(workingStations));
       renderOperations();
-      showToast('✅ Operation deleted successfully!');
+      showToast(`✅ Operation "${deletedOp.code}" deleted successfully!`);
     }
   }
 
@@ -707,6 +769,7 @@
     }, 3000);
   }
 
+  // Initial render
   renderMasterStations();
 </script>
 
