@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Ather PFMEA</title>
+  <style>
+    :root {
+      --ather-green: #17b890;
+      --ather-dark: #0f1419;
+      --bg: #f8fafc;
+      --text-main: #0f172a;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      max-width: 1000px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .login-left {
+      background: linear-gradient(135deg, var(--ather-green) 0%, #0f9670 100%);
+      padding: 60px 40px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .logo-section {
+      margin-bottom: 40px;
+    }
+
+    .logo-badge {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      color: white;
+      font-weight: 900;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      letter-spacing: 1.5px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+
+    .login-left h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .login-left p {
+      font-size: 16px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+
+    .features-list {
+      margin-top: 40px;
+      list-style: none;
+    }
+
+    .features-list li {
+      padding: 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    .features-list li::before {
+      content: '✓';
+      background: rgba(255, 255, 255, 0.2);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .login-right {
+      padding: 60px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .login-header {
+      margin-bottom: 32px;
+    }
+
+    .login-header h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ather-dark);
+      margin-bottom: 8px;
+    }
+
+    .login-header p {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 18px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 14px 14px 44px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--ather-green);
+      box-shadow: 0 0 0 4px rgba(23, 184, 144, 0.1);
+    }
+
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #64748b;
+    }
+
+    .remember-me input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .forgot-password {
+      color: var(--ather-green);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .forgot-password:hover {
+      text-decoration: underline;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--ather-green) 0%, #0f9670 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(23, 184, 144, 0.3);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .divider {
+      text-align: center;
+      margin: 24px 0;
+      position: relative;
+    }
+
+    .divider::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .divider span {
+      background: white;
+      padding: 0 16px;
+      position: relative;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .quick-login {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .quick-login p {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+
+    .quick-login-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-quick {
+      flex: 1;
+      padding: 10px 16px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #475569;
+    }
+
+    .btn-quick:hover {
+      background: #e2e8f0;
+      border-color: var(--ather-green);
+      color: var(--ather-green);
+    }
+
+    .error-message {
+      background: #fef2f2;
+      border-left: 4px solid #dc2626;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 13px;
+      color: #991b1b;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .success-message {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 13px;
+      color: #166534;
+    }
+
+    .success-message.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
+    .register-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .register-link a {
+      color: var(--ather-green);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .register-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .login-container {
+        grid-template-columns: 1fr;
+      }
+
+      .login-left {
+        padding: 40px 30px;
+      }
+
+      .login-right {
+        padding: 40px 30px;
+      }
+
+      .features-list {
+        display: none;
+      }
+
+      .login-left h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <!-- Left Panel -->
+    <div class="login-left">
+      <div class="logo-section">
+        <div class="logo-badge">ATHER ENERGY</div>
+        <h1>PFMEA Engineering Suite</h1>
+        <p>Process Failure Mode & Effects Analysis Platform</p>
+      </div>
+
+      <ul class="features-list">
+        <li>Comprehensive Risk Assessment Tools</li>
+        <li>Real-time Collaboration & Tracking</li>
+        <li>Advanced Analytics & Reporting</li>
+        <li>Secure Data Management</li>
+        <li>Multi-station Configuration</li>
+      </ul>
+    </div>
+
+    <!-- Right Panel - Login Form -->
+    <div class="login-right">
+      <div class="login-header">
+        <h2>Welcome Back</h2>
+        <p>Sign in to access your PFMEA workspace</p>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+      <div class="success-message" id="successMessage"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Username or Email</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input 
+              type="text" 
+              id="username" 
+              name="username" 
+              placeholder="Enter your username or email"
+              required
+              autocomplete="username"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              placeholder="Enter your password"
+              required
+              autocomplete="current-password"
+            >
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="remember-me">
+            <input type="checkbox" id="rememberMe">
+            <span>Remember me</span>
+          </label>
+          <a href="#" class="forgot-password" onclick="showForgotPassword(); return false;">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-login">Sign In</button>
+      </form>
+
+      <div class="divider">
+        <span>OR</span>
+      </div>
+
+      <div class="quick-login">
+        <p>Quick Login (Demo Users)</p>
+        <div class="quick-login-buttons">
+          <button class="btn-quick" onclick="quickLogin('admin')">👨‍💼 Admin</button>
+          <button class="btn-quick" onclick="quickLogin('engineer')">👷 Engineer</button>
+          <button class="btn-quick" onclick="quickLogin('viewer')">👁️ Viewer</button>
+        </div>
+      </div>
+
+      <div class="register-link">
+        Don't have an account? <a href="register.html">Create Account</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize default users if not exists
+    function initializeUsers() {
+      if (!localStorage.getItem('pfmea_users')) {
+        const defaultUsers = [
+          {
+            id: 1,
+            username: 'admin',
+            email: 'admin@ather.energy',
+            password: 'admin123',
+            role: 'admin',
+            fullName: 'System Administrator',
+            department: 'IT',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 2,
+            username: 'engineer',
+            email: 'engineer@ather.energy',
+            password: 'engineer123',
+            role: 'engineer',
+            fullName: 'Quality Engineer',
+            department: 'Quality',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 3,
+            username: 'viewer',
+            email: 'viewer@ather.energy',
+            password: 'viewer123',
+            role: 'viewer',
+            fullName: 'Guest Viewer',
+            department: 'Operations',
+            createdAt: new Date().toISOString()
+          }
+        ];
+        localStorage.setItem('pfmea_users', JSON.stringify(defaultUsers));
+      }
+    }
+
+    // Check if already logged in
+    function checkExistingSession() {
+      const currentUser = localStorage.getItem('pfmea_current_user');
+      if (currentUser) {
+        const user = JSON.parse(currentUser);
+        const sessionExpiry = localStorage.getItem('pfmea_session_expiry');
+        
+        if (sessionExpiry && new Date().getTime() < parseInt(sessionExpiry)) {
+          window.location.href = 'index.html';
+        } else {
+          localStorage.removeItem('pfmea_current_user');
+          localStorage.removeItem('pfmea_session_expiry');
+        }
+      }
+    }
+
+    // Login form submission
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const rememberMe = document.getElementById('rememberMe').checked;
+
+      if (!username || !password) {
+        showError('Please enter both username and password');
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem('pfmea_users') || '[]');
+      const user = users.find(u => 
+        (u.username === username || u.email === username) && u.password === password
+      );
+
+      if (user) {
+        loginUser(user, rememberMe);
+      } else {
+        showError('Invalid username or password');
+      }
+    });
+
+    function loginUser(user, rememberMe) {
+      const userSession = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        fullName: user.fullName,
+        department: user.department,
+        loginTime: new Date().toISOString()
+      };
+
+      localStorage.setItem('pfmea_current_user', JSON.stringify(userSession));
+
+      const expiryTime = rememberMe ? 24 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
+      const expiryTimestamp = new Date().getTime() + expiryTime;
+      localStorage.setItem('pfmea_session_expiry', expiryTimestamp.toString());
+
+      logActivity('login', user.username);
+
+      showSuccess('Login successful! Redirecting...');
+      
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1000);
+    }
+
+    function quickLogin(role) {
+      const users = JSON.parse(localStorage.getItem('pfmea_users') || '[]');
+      const user = users.find(u => u.role === role);
+      
+      if (user) {
+        document.getElementById('username').value = user.username;
+        document.getElementById('password').value = user.password;
+        showSuccess(`Credentials filled for ${role}. Click Sign In to continue.`);
+      }
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = '⚠️ ' + message;
+      errorDiv.classList.add('show');
+      
+      setTimeout(() => {
+        errorDiv.classList.remove('show');
+      }, 5000);
+    }
+
+    function showSuccess(message) {
+      const successDiv = document.getElementById('successMessage');
+      successDiv.textContent = '✓ ' + message;
+      successDiv.classList.add('show');
+      
+      setTimeout(() => {
+        successDiv.classList.remove('show');
+      }, 5000);
+    }
+
+    function showForgotPassword() {
+      alert('Password reset functionality:\n\nFor demo purposes:\n- Admin: admin123\n- Engineer: engineer123\n- Viewer: viewer123\n\nContact your system administrator for password reset.');
+    }
+
+    function logActivity(action, username) {
+      const activities = JSON.parse(localStorage.getItem('pfmea_activities') || '[]');
+      activities.push({
+        action: action,
+        username: username,
+        timestamp: new Date().toISOString(),
+        ip: 'Local'
+      });
+      localStorage.setItem('pfmea_activities', JSON.stringify(activities));
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initializeUsers();
+      checkExistingSession();
+    });
+  </script>
+</body>
+</html>

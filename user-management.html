@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management - Ather PFMEA</title>
+  <script src="auth.js"></script>
+  <style>
+    :root {
+      --ather-green: #17b890;
+      --ather-dark: #0f1419;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      padding-bottom: 60px;
+    }
+
+    /* ========== NAVBAR ========== */
+    .navbar {
+      background: linear-gradient(135deg, var(--ather-dark) 0%, #1a1f2e 100%);
+      color: #fff;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 3px solid var(--ather-green);
+    }
+
+    .navbar-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 32px;
+      height: 70px;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      text-decoration: none;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .navbar-brand:hover {
+      color: var(--ather-green);
+    }
+
+    .navbar-brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--ather-green);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .navbar-menu {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      list-style: none;
+    }
+
+    .navbar-item {
+      position: relative;
+    }
+
+    .navbar-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .navbar-link:hover {
+      background: rgba(23, 184, 144, 0.2);
+      color: var(--ather-green);
+      transform: translateY(-2px);
+    }
+
+    .navbar-link.active {
+      background: rgba(23, 184, 144, 0.2);
+      color: var(--ather-green);
+      border-color: var(--ather-green);
+    }
+
+    .logout-btn {
+      background: rgba(220, 38, 38, 0.1) !important;
+      border: 1px solid rgba(220, 38, 38, 0.3) !important;
+      color: #dc2626 !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+    }
+
+    .logout-btn:hover {
+      background: rgba(220, 38, 38, 0.2) !important;
+      border-color: #dc2626 !important;
+    }
+
+    .navbar-divider {
+      width: 1px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 0 8px;
+    }
+
+    .navbar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 10px;
+    }
+
+    .navbar-toggle:hover {
+      color: var(--ather-green);
+    }
+
+    /* ========== BREADCRUMB ========== */
+    .breadcrumb {
+      background: white;
+      padding: 12px 40px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .breadcrumb a {
+      color: var(--ather-green);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    /* ========== HEADER ========== */
+    header {
+      background: white;
+      padding: 30px 40px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--ather-dark);
+    }
+
+    .header-info {
+      text-align: right;
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 40px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--ather-dark);
+    }
+
+    .users-container {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .users-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .users-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--ather-green);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0f9670;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(23, 184, 144, 0.3);
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #991b1b;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .user-card {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .user-card:hover {
+      background: #f8fafc;
+    }
+
+    .user-card:last-child {
+      border-bottom: none;
+    }
+
+    .user-info h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ather-dark);
+    }
+
+    .user-details {
+      display: flex;
+      gap: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .user-detail {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .role-admin {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .role-engineer {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .role-viewer {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .activity-log {
+      margin-top: 30px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 20px;
+    }
+
+    .activity-log h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .activity-item {
+      padding: 12px;
+      border-left: 3px solid var(--ather-green);
+      background: #f8fafc;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .activity-time {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .navbar-container {
+        padding: 0 16px;
+        height: auto;
+        flex-wrap: wrap;
+      }
+
+      .navbar-menu {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: var(--ather-dark);
+        flex-direction: column;
+        width: 100%;
+        padding: 10px 0;
+        border-bottom: 3px solid var(--ather-green);
+      }
+
+      .navbar-menu.active {
+        display: flex;
+      }
+
+      .navbar-toggle {
+        display: block;
+      }
+
+      .navbar-link {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 0;
+      }
+
+      .navbar-divider {
+        display: none;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+      }
+
+      main {
+        padding: 0 20px;
+      }
+
+      .user-card {
+        grid-template-columns: 1fr;
+      }
+
+      .user-actions {
+        width: 100%;
+      }
+
+      .user-actions .btn {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="navbar-brand" onclick="window.location.href='index.html'" style="cursor: pointer;">
+        <div class="navbar-brand-icon">⚙️</div>
+        <span>Ather PFMEA</span>
+      </div>
+      
+      <button class="navbar-toggle" onclick="toggleMobileMenu()">☰</button>
+      
+      <ul class="navbar-menu" id="navbarMenu">
+        <li class="navbar-item">
+          <a href="database.html" class="navbar-link">📊 Database</a>
+        </li>
+        <li class="navbar-item">
+          <a href="pfmea-entry.html" class="navbar-link">📝 Add Entry</a>
+        </li>
+        <li class="navbar-item">
+          <a href="stations.html" class="navbar-link">🏭 Stations</a>
+        </li>
+        <li class="navbar-divider"></li>
+        <li class="navbar-item">
+          <a href="user-management.html" class="navbar-link active">👥 Users</a>
+        </li>
+        <li class="navbar-item">
+          <a href="index.html" class="navbar-link">🏠 Home</a>
+        </li>
+        <li class="navbar-item">
+          <button onclick="logoutUser()" class="navbar-link logout-btn">
+            🚪 Logout
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="index.html">Home</a>
+    <span style="color: #cbd5e1;">/</span>
+    <span>User Management</span>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div>
+      <h1>👥 User Management</h1>
+      <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Manage user accounts, roles, and permissions</p>
+    </div>
+    <div class="header-info" id="userInfo">
+      <!-- User info will be injected by auth.js -->
+    </div>
+  </header>
+
+  <main>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value" id="totalUsers">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Administrators</div>
+        <div class="stat-value" id="adminCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Engineers</div>
+        <div class="stat-value" id="engineerCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Viewers</div>
+        <div class="stat-value" id="viewerCount">0</div>
+      </div>
+    </div>
+
+    <div class="users-container">
+      <div class="users-header">
+        <h2>Registered Users</h2>
+        <button class="btn btn-primary" onclick="window.location.href='register.html'">
+          ➕ Add New User
+        </button>
+      </div>
+      <div id="usersList">
+        <!-- Users will be listed here -->
+      </div>
+    </div>
+
+    <div class="activity-log">
+      <h3>📋 Recent Activity</h3>
+      <div id="activityList">
+        <!-- Activity items will be listed here -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Check if user is admin
+    if (!hasPermission('admin')) {
+      alert('Access denied. Admin privileges required.');
+      window.location.href = 'index.html';
+    }
+
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      const menu = document.getElementById('navbarMenu');
+      menu.classList.toggle('active');
+    }
+
+    function loadUsers() {
+      const users = JSON.parse(localStorage.getItem('pfmea_users') || '[]');
+      const container = document.getElementById('usersList');
+      
+      // Update stats
+      document.getElementById('totalUsers').textContent = users.length;
+      document.getElementById('adminCount').textContent = users.filter(u => u.role === 'admin').length;
+      document.getElementById('engineerCount').textContent = users.filter(u => u.role === 'engineer').length;
+      document.getElementById('viewerCount').textContent = users.filter(u => u.role === 'viewer').length;
+
+      if (users.length === 0) {
+        container.innerHTML = '<div style="padding: 40px; text-align: center; color: #64748b;">No users found</div>';
+        return;
+      }
+      
+      container.innerHTML = users.map(user => {
+        const roleClass = `role-${user.role}`;
+        const createdDate = new Date(user.createdAt).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+
+        return `
+          <div class="user-card">
+            <div class="user-info">
+              <h3>${user.fullName}</h3>
+              <div class="user-details">
+                <div class="user-detail">
+                  <span>👤</span>
+                  <span>${user.username}</span>
+                </div>
+                <div class="user-detail">
+                  <span>📧</span>
+                  <span>${user.email}</span>
+                </div>
+                <div class="user-detail">
+                  <span>🏢</span>
+                  <span>${user.department}</span>
+                </div>
+                <div class="user-detail">
+                  <span class="role-badge ${roleClass}">${user.role}</span>
+                </div>
+                <div class="user-detail">
+                  <span>📅</span>
+                  <span>Created: ${createdDate}</span>
+                </div>
+              </div>
+            </div>
+            <div class="user-actions">
+              <button class="btn btn-secondary" onclick="editUser(${user.id})">✏️ Edit</button>
+              <button class="btn btn-danger" onclick="deleteUser(${user.id})">🗑️ Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function deleteUser(userId) {
+      if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+        let users = JSON.parse(localStorage.getItem('pfmea_users') || '[]');
+        const user = users.find(u => u.id === userId);
+        
+        if (user && user.role === 'admin') {
+          const adminCount = users.filter(u => u.role === 'admin').length;
+          if (adminCount <= 1) {
+            alert('Cannot delete the last administrator account!');
+            return;
+          }
+        }
+
+        users = users.filter(u => u.id !== userId);
+        localStorage.setItem('pfmea_users', JSON.stringify(users));
+        
+        // Log activity
+        logActivity('User Deleted', `${user.fullName} (${user.username}) was removed from the system`);
+        
+        loadUsers();
+        loadActivity();
+        showToast('✅ User deleted successfully!');
+      }
+    }
+
+    function editUser(userId) {
+      const users = JSON.parse(localStorage.getItem('pfmea_users') || '[]');
+      const user = users.find(u => u.id === userId);
+      
+      if (!user) return;
+
+      const newRole = prompt(`Change role for ${user.fullName}:\n\nCurrent: ${user.role}\n\nEnter new role (admin/engineer/viewer):`, user.role);
+      
+      if (newRole && ['admin', 'engineer', 'viewer'].includes(newRole.toLowerCase())) {
+        user.role = newRole.toLowerCase();
+        localStorage.setItem('pfmea_users', JSON.stringify(users));
+        
+        logActivity('User Role Changed', `${user.fullName}'s role changed to ${user.role}`);
+        
+        loadUsers();
+        loadActivity();
+        showToast('✅ User role updated successfully!');
+      } else if (newRole) {
+        alert('Invalid role. Please use: admin, engineer, or viewer');
+      }
+    }
+
+    function loadActivity() {
+      const activities = JSON.parse(localStorage.getItem('pfmea_activities') || '[]');
+      const container = document.getElementById('activityList');
+      
+      if (activities.length === 0) {
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #64748b;">No recent activity</div>';
+        return;
+      }
+
+      const recentActivities = activities.slice(-10).reverse();
+      
+      container.innerHTML = recentActivities.map(activity => {
+        const time = new Date(activity.timestamp).toLocaleString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        return `
+          <div class="activity-item">
+            <strong>${activity.action}</strong> by ${activity.username}
+            <div class="activity-time">${time}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function logActivity(action, description) {
+      const activities = JSON.parse(localStorage.getItem('pfmea_activities') || '[]');
+      activities.push({
+        action: action,
+        username: currentUser.username,
+        timestamp: new Date().toISOString(),
+        description: description
+      });
+      localStorage.setItem('pfmea_activities', JSON.stringify(activities));
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: white;
+        padding: 16px 20px;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        border-left: 4px solid ${type === 'success' ? '#16a34a' : type === 'error' ? '#dc2626' : '#f59e0b'};
+        z-index: 3000;
+        animation: slideInRight 0.3s ease;
+        max-width: 400px;
+        font-size: 14px;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Load data on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadUsers();
+      loadActivity();
+    });
+  </script>
+
+  <style>
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideOutRight {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+    }
+  </style>
+</body>
+</html>

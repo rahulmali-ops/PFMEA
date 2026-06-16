@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ather PFMEA Entry - VDA Style</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="auth.js"></script>
+    <style>
+        :root {
+            --ather-green: #17b890;
+            --ather-dark: #121214;
+        }
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Logout button styling */
+        .logout-btn {
+            background: rgba(220, 38, 38, 0.1) !important;
+            border: 1px solid rgba(220, 38, 38, 0.3) !important;
+            color: #dc2626 !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .logout-btn:hover {
+            background: rgba(220, 38, 38, 0.2) !important;
+            border-color: #dc2626 !important;
+            transform: translateY(-2px) !important;
+        }
+
+        /* User info display */
+        .user-info-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .user-info-display .user-name {
+            font-weight: 600;
+        }
+
+        .user-info-display .user-role {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans">
+
+    <!-- Navbar -->
+    <nav class="bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg border-b-4 border-green-500">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center flex-wrap gap-4">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='index.html'">
+                <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-xl font-bold">⚙️</div>
+                <span class="text-xl font-bold">Ather PFMEA</span>
+            </div>
+            <div class="flex gap-4 items-center flex-wrap">
+                <a href="database.html" class="px-4 py-2 rounded hover:bg-slate-700 transition">📊 Database</a>
+                <a href="pfmea-entry.html" class="px-4 py-2 bg-green-500 rounded font-semibold">📝 Add Entry</a>
+                <a href="stations.html" class="px-4 py-2 rounded hover:bg-slate-700 transition">🏭 Stations</a>
+                <a href="user-management.html" class="px-4 py-2 rounded hover:bg-slate-700 transition" id="userMgmtLink">👥 Users</a>
+                <a href="index.html" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition font-semibold">🏠 Home</a>
+                
+                <!-- User Info Display -->
+                <div id="userInfo" class="user-info-display">
+                    <!-- Will be populated by auth.js -->
+                </div>
+                
+                <!-- Logout Button -->
+                <button onclick="logoutUser()" class="logout-btn px-4 py-2 rounded font-semibold transition">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="bg-white px-4 py-3 text-sm border-b">
+        <a href="index.html" class="text-green-600 hover:underline font-medium">Home</a>
+        <span class="text-slate-400 mx-2">/</span>
+        <span>PFMEA Entry</span>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-6">
+        
+        <!-- Header Card -->
+        <header class="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 border-green-500">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">AIAG-VDA PFMEA Entry</h1>
+                    <p class="text-slate-600 mt-1">Smart Excel/CSV Ingestion & Action Priority Engine</p>
+                </div>
+                <div class="text-right bg-slate-100 p-4 rounded border">
+                    <p class="font-bold text-blue-600" id="currentRevDisplay">Current Rev: 30</p>
+                    <p class="text-sm text-slate-600" id="currentDateDisplay">Date: --</p>
+                    <p class="text-xs text-slate-500 mt-1" id="totalRecordsDisplay">Total Records: 0</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- CSV/Excel Upload Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2 border-b pb-2">
+                📤 Bulk Import from Excel/CSV
+            </h2>
+            <div class="flex items-center gap-4 flex-wrap">
+                <label class="block text-sm font-semibold text-slate-700">Upload Your PFMEA File:</label>
+                <input type="file" id="csvUpload" accept=".csv,.xlsx,.xls" 
+                    class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 
+                    file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                <span id="importStatus" class="text-sm font-medium text-emerald-600 italic"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">💡 Supports CSV and Excel files. Auto-cleans ALL NA/N/A values to blank spaces. You'll be able to map columns after upload.</p>
+        </div>
+
+        <!-- Data Processing Info -->
+        <div id="processingInfo" class="hidden bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow-md mb-6">
+            <div class="flex items-center">
+                <svg class="h-5 w-5 text-blue-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <p class="text-sm font-medium text-blue-800" id="processingText">
+                    🔄 Processing data...
+                </p>
+            </div>
+        </div>
+
+        <!-- Column Mapping Modal -->
+        <div id="columnMappingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-slate-800">📋 Map Your Columns</h2>
+                    <button onclick="closeColumnMapping()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-sm text-slate-600 mb-4">
+                        ℹ️ Map columns from your file to the required PFMEA fields. Detected columns are shown on the left.
+                    </p>
+                    
+                    <div id="columnMappingContainer" class="space-y-3"></div>
+                    
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button onclick="closeColumnMapping()" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded font-semibold transition">
+                            Cancel
+                        </button>
+                        <button onclick="confirmColumnMapping()" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition">
+                            ✓ Confirm & Import
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Entry Form -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">➕ Add / Edit Process Step Manually</h2>
+            <form id="pfmeaForm">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    
+                    <!-- Station Dropdown -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">🏭 Station</label>
+                        <select id="stationSelect" required 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                            <option value="" disabled selected>-- Select Station --</option>
+                        </select>
+                    </div>
+
+                    <!-- Process Step / Op Description Dropdown -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Process Step / Op Description</label>
+                        <select id="operationSelect" required disabled
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm bg-gray-50 disabled:opacity-50">
+                            <option value="" disabled selected>-- Select Operation --</option>
+                        </select>
+                    </div>
+
+                    <!-- Requirement (Col D) -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Requirement (Col D)</label>
+                        <input type="text" id="requirement" required placeholder="e.g., Oil bolt M8X1.25" 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                    </div>
+
+                    <!-- Process Type -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Process Type</label>
+                        <select id="processType" required 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                            <option value="" disabled selected>-- Select Process Type --</option>
+                        </select>
+                    </div>
+
+                    <!-- Failure Mode -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Failure Mode</label>
+                        <select id="failureMode" required disabled 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm bg-gray-50 disabled:opacity-50">
+                            <option value="" disabled selected>-- Select Failure Mode --</option>
+                        </select>
+                    </div>
+
+                    <!-- Failure Effect -->
+                    <div class="col-span-1 md:col-span-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Failure Effect</label>
+                        <input type="text" id="failureEffect" required disabled placeholder="Describe effects..." 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm bg-gray-50 disabled:opacity-50">
+                    </div>
+
+                    <!-- Severity -->
+                    <div class="col-span-1">
+                        <label class="block text-xs font-medium text-red-600 font-bold mb-1">Severity (S)</label>
+                        <input type="number" id="sev" min="1" max="10" required 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200">
+                    </div>
+
+                    <!-- Classification Field -->
+                    <div class="col-span-1">
+                        <label class="block text-xs font-medium text-blue-600 font-bold mb-1">🏷️ Classification</label>
+                        <select id="classification" required 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                            <option value="" disabled selected>-- Select --</option>
+                            <option value="SC">SC (Safety Critical)</option>
+                            <option value="CC">CC (Critical Characteristic)</option>
+                            <option value="None">None</option>
+                        </select>
+                    </div>
+
+                    <!-- Potential Cause -->
+                    <div class="col-span-1 md:col-span-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Potential Cause</label>
+                        <input type="text" id="cause" required placeholder="Root cause description" 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                    </div>
+
+                    <!-- Occurrence -->
+                    <div class="col-span-1">
+                        <label class="block text-xs font-medium text-yellow-600 font-bold mb-1">Occurrence (O)</label>
+                        <input type="number" id="occ" min="1" max="10" required 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200">
+                    </div>
+
+                    <!-- Prevention Control -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Prevention Control</label>
+                        <input type="text" id="prevControl" required placeholder="Design/Process Prevention" 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                    </div>
+
+                    <!-- Detection Control -->
+                    <div class="col-span-1 md:col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Detection Control</label>
+                        <input type="text" id="detControl" required placeholder="Testing/Poka-Yoke" 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                    </div>
+
+                    <!-- Detection -->
+                    <div class="col-span-1">
+                        <label class="block text-xs font-medium text-green-600 font-bold mb-1">Detection (D)</label>
+                        <input type="number" id="det" min="1" max="10" required 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                    </div>
+
+                    <!-- Action to be Taken -->
+                    <div class="col-span-1 md:col-span-4">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">
+                            ⚠️ Action to be Taken 
+                            <span id="actionRequiredLabel" class="text-red-600 font-bold hidden">*Required for High/Medium Priority</span>
+                        </label>
+                        <textarea id="actionToBeTaken" rows="3" placeholder="Describe corrective/preventive actions (e.g., Add poka-yoke, Revise work instruction, Implement additional inspection...)" 
+                            class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200"></textarea>
+                        <p class="text-xs text-slate-500 mt-1" id="actionHelpText">
+                            💡 This field becomes mandatory when Action Priority is High (H) or Medium (M)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="text-right mt-4">
+                    <button type="reset" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded text-sm transition mr-2">
+                        Clear Form
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded text-sm transition shadow">
+                        ✓ Save to Database
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Success Message -->
+        <div id="successMessage" class="hidden bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-md mb-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="text-sm font-medium text-green-800" id="successText">
+                        ✓ Record saved successfully! View in <a href="database.html" class="underline font-bold">Database</a>.
+                    </p>
+                </div>
+                <button onclick="hideSuccessMessage()" class="text-green-500 hover:text-green-700">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Audit & Change Management -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold border-b pb-2 mb-4 flex items-center gap-2">
+                📝 Change Management & Audit Log
+                <span class="text-sm font-normal text-slate-500">(Auto-tracked)</span>
+            </h2>
+            
+            <form id="changeLogForm" class="mb-6 bg-slate-50 p-4 border rounded flex gap-4 items-end flex-wrap">
+                <div class="flex-grow min-w-[300px]">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Reason for Change</label>
+                    <input type="text" id="changeDesc" required placeholder="State exact engineering reason..." 
+                        class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm">
+                </div>
+                <div class="min-w-[150px]">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Author</label>
+                    <input type="text" id="changeAuthor" required placeholder="Your Name" 
+                        class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm">
+                </div>
+                <button type="submit" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded text-sm transition shadow h-[38px]">
+                    Log Change
+                </button>
+            </form>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-300 text-sm text-left border">
+                    <thead class="bg-slate-100 text-gray-600 font-semibold">
+                        <tr>
+                            <th class="px-4 py-2 border-r w-24">Rev No.</th>
+                            <th class="px-4 py-2 border-r w-32">Date & Time</th>
+                            <th class="px-4 py-2 border-r w-32">Action Type</th>
+                            <th class="px-4 py-2 border-r w-48">Author</th>
+                            <th class="px-4 py-2">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="changeLogBody" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Identification Modal -->
+    <div id="userModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 class="text-xl font-bold text-slate-800 mb-4">🔐 User Identification Required</h2>
+            <p class="text-sm text-slate-600 mb-4">Please enter your details to record this entry in the audit trail.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Your Name *</label>
+                    <input type="text" id="userName" required placeholder="e.g., John Doe" 
+                        class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Your Role *</label>
+                    <input type="text" id="userRole" required placeholder="e.g., Quality Engineer, Production Supervisor, etc." 
+                        class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                    <p class="text-xs text-slate-500 mt-1">💡 Examples: Quality Engineer, Manufacturing Engineer, Production Supervisor, Process Engineer, Plant Manager, etc.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button onclick="cancelUserModal()" class="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded font-semibold transition">
+                    Cancel
+                </button>
+                <button onclick="confirmUserIdentity()" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition">
+                    ✓ Confirm & Submit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check permissions
+        if (!hasPermission('engineer')) {
+            alert('Access denied. Engineer or Admin privileges required to add entries.');
+            window.location.href = 'index.html';
+        }
+
+        let currentRevision = 30;
+        let stationsData = [];
+        
+        let parsedFileData = null;
+        let detectedHeaders = [];
+        let columnMapping = {};
+        let uploadedFileName = '';
+        let cleanedCellsCount = 0;
+
+        let pendingFormData = null;
+        let pendingActionType = null;
+
+        const requiredFields = [
+            { key: 'station', label: 'Station', required: true },
+            { key: 'operation', label: 'Process Step / Operation', required: true },
+            { key: 'requirement', label: 'Requirement', required: true },
+            { key: 'processType', label: 'Process Type', required: false },
+            { key: 'mode', label: 'Failure Mode', required: true },
+            { key: 'effect', label: 'Failure Effect', required: true },
+            { key: 's', label: 'Severity (S)', required: true },
+            { key: 'classification', label: 'Classification', required: true },
+            { key: 'cause', label: 'Potential Cause', required: true },
+            { key: 'o', label: 'Occurrence (O)', required: true },
+            { key: 'prev', label: 'Prevention Control', required: true },
+            { key: 'detControl', label: 'Detection Control', required: true },
+            { key: 'd', label: 'Detection (D)', required: true },
+            { key: 'actionToBeTaken', label: 'Action to be Taken', required: false }
+        ];
+
+        const pfmeaData = {
+            "Fastening & Torquing": [
+                "Cross-threading during pre-fit",
+                "Misalignment of mating parts prior to torquing",
+                "Wrong fastener/hardware selected for pre-fit",
+                "Missing washer/spacer during pre-fit",
+                "Over-torqued (High torque limit exceeded)",
+                "Under-torqued (Low torque / Loose)",
+                "Missing fastener / Bolt skipped",
+                "Stripped threads (Bolt or Nut/Boss)",
+                "Wrong tightening sequence (Cross-tightening not followed)",
+                "Tool torque setting disturbed/uncalibrated"
+            ],
+            "Press Fit & Insertion": [
+                "Incomplete insertion / Not seated to specified depth",
+                "Misaligned / Angular insertion",
+                "High pressing load (Over-pressed)",
+                "Low pressing load (Loose fit)",
+                "Part damaged/deformed during pressing",
+                "Wrong part inserted",
+                "Missing part (e.g., missing bearing, dowel, or seal)"
+            ],
+            "Part Placement & Orientation": [
+                "Wrong orientation (Reversed, upside down, or rotated)",
+                "Wrong part placed (Incorrect variant/part number)",
+                "Part missing completely",
+                "Part misaligned / Not seated properly",
+                "Foreign Object Debris (FOD) trapped under/inside part",
+                "Insecure placement (Part falls off before next station)"
+            ],
+            "Fluid & Adhesive Dispensing": [
+                "Less quantity dispensed (Under-filled)",
+                "Excess quantity dispensed (Over-filled)",
+                "Missing dispensing (Completely dry)",
+                "Wrong fluid/adhesive used",
+                "Dispensed at wrong location / Misaligned bead",
+                "Improper curing (Insufficient time/temperature)",
+                "Air bubbles/gaps in dispensing bead"
+            ],
+            "Electrical & Software Setup": [
+                "Loose connection (Coupler/Terminal not fully clicked or seated)",
+                "Wrong routing (Cable pinched, stressed, or rubbing against sharp edges)",
+                "Wrong connection (Cross-wired / Mismated couplers)",
+                "Bent or pushed-back pins in coupler",
+                "Wrong software version flashed",
+                "Flash failure / Process timeout",
+                "Missing zip-tie / Improperly secured harness"
+            ],
+            "Testing & Measurement": [
+                "False Pass (Accepting a defective part)",
+                "False Fail (Rejecting a good part)",
+                "Measurement taken at wrong location/datum",
+                "Test equipment not calibrated / Master not set",
+                "Test skipped / Bypassed by operator",
+                "Leakage / Pressure drop during test"
+            ],
+            "Marking & Traceability": [
+                "Illegible marking / Unreadable print (Faded, smudged)",
+                "Wrong data marked or scanned (Mismatch with physical part)",
+                "Missing marking / Missing label",
+                "Label improperly applied (Peeling off, wrinkled, bubbles)",
+                "Duplicate serial number / VIN scanned or marked",
+                "Scanning sequence skipped"
+            ],
+            "Handling & Surface Integrity": [
+                "Scratches on visible/painted surface",
+                "Dents or physical damage during handling/transit",
+                "Dust/Oil/Contamination on critical surface",
+                "Rust or corrosion present on part",
+                "Part dropped and improperly reused without inspection"
+            ]
+        };
+
+        function showUserModal(formData, actionType) {
+            pendingFormData = formData;
+            pendingActionType = actionType;
+            document.getElementById('userModal').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('userName').focus();
+            }, 100);
+        }
+
+        function cancelUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+            pendingFormData = null;
+            pendingActionType = null;
+            document.getElementById('userName').value = '';
+            document.getElementById('userRole').value = '';
+        }
+
+        function confirmUserIdentity() {
+            const userName = document.getElementById('userName').value.trim();
+            const userRole = document.getElementById('userRole').value.trim();
+            
+            if (!userName) {
+                alert('⚠️ Please enter your name');
+                document.getElementById('userName').focus();
+                return;
+            }
+            
+            if (!userRole) {
+                alert('⚠️ Please enter your role');
+                document.getElementById('userRole').focus();
+                return;
+            }
+            
+            document.getElementById('userModal').classList.add('hidden');
+            
+            if (pendingActionType === 'manual_entry') {
+                saveToDatabase(pendingFormData, 'manual');
+                
+                currentRevision++;
+                document.getElementById('currentRevDisplay').textContent = "Current Rev: " + currentRevision;
+                addAuditLog(
+                    'MANUAL ENTRY',
+                    `${userName} (${userRole})`,
+                    `Added PFMEA record for ${pendingFormData.station} - ${pendingFormData.requirement}`,
+                    { 
+                        station: pendingFormData.station, 
+                        requirement: pendingFormData.requirement,
+                        userName: userName,
+                        userRole: userRole
+                    }
+                );
+                
+                showSuccessMessage(1);
+                document.getElementById('pfmeaForm').reset();
+                document.getElementById('operationSelect').disabled = true;
+                failureModeSelect.disabled = true;
+                failureEffectInput.disabled = true;
+                
+                const actionField = document.getElementById('actionToBeTaken');
+                const actionLabel = document.getElementById('actionRequiredLabel');
+                const actionHelp = document.getElementById('actionHelpText');
+                actionField.required = false;
+                actionLabel.classList.add('hidden');
+                actionField.classList.remove('border-red-500', 'bg-red-50');
+                actionHelp.innerHTML = '💡 This field becomes mandatory when Action Priority is High (H) or Medium (M)';
+                actionHelp.classList.remove('text-red-600', 'font-semibold');
+            } else if (pendingActionType === 'bulk_import') {
+                processBulkImportWithUser(userName, userRole);
+            }
+            
+            pendingFormData = null;
+            pendingActionType = null;
+            
+            document.getElementById('userName').value = '';
+            document.getElementById('userRole').value = '';
+        }
+
+        function processBulkImportWithUser(userName, userRole) {
+            const finalMapping = window.tempFinalMapping;
+            let importedCount = 0;
+            
+            parsedFileData.forEach(row => {
+                const hasData = Object.values(finalMapping).some(idx => row[idx] && row[idx].toString().trim() !== '');
+                if (!hasData) return;
+                
+                const data = {
+                    station: cleanCellValue(row[finalMapping.station]) || '',
+                    operation: cleanCellValue(row[finalMapping.operation]) || '',
+                    requirement: cleanCellValue(row[finalMapping.requirement]) || '',
+                    processType: cleanCellValue(row[finalMapping.processType]) || '',
+                    mode: cleanCellValue(row[finalMapping.mode]) || '',
+                    effect: cleanCellValue(row[finalMapping.effect]) || '',
+                    s: cleanCellValue(row[finalMapping.s]) || '1',
+                    classification: cleanCellValue(row[finalMapping.classification]) || 'None',
+                    cause: cleanCellValue(row[finalMapping.cause]) || '',
+                    o: cleanCellValue(row[finalMapping.o]) || '1',
+                    prev: cleanCellValue(row[finalMapping.prev]) || '',
+                    det: cleanCellValue(row[finalMapping.detControl]) || '',
+                    d: cleanCellValue(row[finalMapping.d]) || '1',
+                    actionToBeTaken: cleanCellValue(row[finalMapping.actionToBeTaken]) || ''
+                };
+                
+                saveToDatabase(data, 'bulk_import');
+                importedCount++;
+            });
+            
+            currentRevision++;
+            document.getElementById('currentRevDisplay').textContent = "Current Rev: " + currentRevision;
+            
+            let description = `Bulk imported ${importedCount} records from file: ${uploadedFileName}`;
+            if (cleanedCellsCount > 0) {
+                description += ` | Cleaned ${cleanedCellsCount} NA/null values (ALL columns)`;
+            }
+            
+            addAuditLog(
+                'BULK IMPORT',
+                `${userName} (${userRole})`,
+                description,
+                { 
+                    fileName: uploadedFileName, 
+                    recordCount: importedCount, 
+                    cleanedCells: cleanedCellsCount,
+                    userName: userName,
+                    userRole: userRole
+                }
+            );
+            
+            if (cleanedCellsCount > 0) {
+                showProcessingInfo(`✅ Data cleaned: ${cleanedCellsCount} NA/null values replaced with blank spaces`);
+                setTimeout(hideProcessingInfo, 5000);
+            }
+            
+            document.getElementById('importStatus').textContent = `✓ Successfully imported ${importedCount} rows by ${userName}!`;
+            showSuccessMessage(importedCount);
+            
+            closeColumnMapping();
+            delete window.tempFinalMapping;
+        }
+
+        function cleanCellValue(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            
+            const stringValue = value.toString().trim();
+            
+            const naVariations = [
+                'NA', 'N/A', 'n/a', 'N.A', 'n.a', 'N.A.', 'n.a.',
+                'na', 'Na', 'nA', '#N/A', '#NA', 'null', 'NULL',
+                'Null', 'NONE', 'None', 'none', '-', '--', '---'
+            ];
+            
+            if (naVariations.includes(stringValue)) {
+                cleanedCellsCount++;
+                return '';
+            }
+            
+            return stringValue;
+        }
+
+        function cleanDataArray(dataArray) {
+            cleanedCellsCount = 0;
+            
+            return dataArray.map(row => {
+                return row.map(cell => cleanCellValue(cell));
+            });
+        }
+
+        function showProcessingInfo(message) {
+            const info = document.getElementById('processingInfo');
+            const text = document.getElementById('processingText');
+            text.textContent = message;
+            info.classList.remove('hidden');
+        }
+
+        function hideProcessingInfo() {
+            document.getElementById('processingInfo').classList.add('hidden');
+        }
+        
+        function getTodayString() {
+            const date = new Date();
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+        }
+
+        function getFullDateTime() {
+            const date = new Date();
+            return date.toLocaleString('en-GB', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        document.getElementById('currentDateDisplay').textContent = "Date: " + getTodayString();
+
+        function initAuditLog() {
+            const existing = localStorage.getItem('pfmea_audit_log');
+            if (!existing) {
+                localStorage.setItem('pfmea_audit_log', JSON.stringify([]));
+            }
+        }
+
+        function addAuditLog(actionType, author, description, details = {}) {
+            const auditLog = JSON.parse(localStorage.getItem('pfmea_audit_log') || '[]');
+            
+            const logEntry = {
+                revision: currentRevision,
+                timestamp: new Date().toISOString(),
+                actionType: actionType,
+                author: author,
+                description: description,
+                details: details
+            };
+            
+            auditLog.push(logEntry);
+            localStorage.setItem('pfmea_audit_log', JSON.stringify(auditLog));
+            
+            addChangeLog(currentRevision, getFullDateTime(), actionType, author, description);
+        }
+
+        function loadAuditLogs() {
+            const auditLog = JSON.parse(localStorage.getItem('pfmea_audit_log') || '[]');
+            const changeLogBody = document.getElementById('changeLogBody');
+            changeLogBody.innerHTML = '';
+            
+            auditLog.reverse().forEach(log => {
+                const tr = document.createElement('tr');
+                const dateTime = new Date(log.timestamp).toLocaleString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const actionColor = getActionColor(log.actionType);
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-2 border-r border-gray-200 font-bold text-slate-700">Rev ${log.revision}</td>
+                    <td class="px-4 py-2 border-r border-gray-200 text-gray-600 text-xs">${dateTime}</td>
+                    <td class="px-4 py-2 border-r border-gray-200">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${actionColor}">${log.actionType}</span>
+                    </td>
+                    <td class="px-4 py-2 border-r border-gray-200 text-gray-800">${log.author}</td>
+                    <td class="px-4 py-2 text-gray-700 italic">${log.description}</td>
+                `;
+                changeLogBody.appendChild(tr);
+            });
+        }
+
+        function getActionColor(actionType) {
+            const colors = {
+                'BULK IMPORT': 'bg-blue-100 text-blue-800',
+                'MANUAL ENTRY': 'bg-green-100 text-green-800',
+                'MANUAL CHANGE': 'bg-yellow-100 text-yellow-800',
+                'SYSTEM': 'bg-gray-100 text-gray-800',
+                'UPDATE': 'bg-purple-100 text-purple-800',
+                'DELETE': 'bg-red-100 text-red-800',
+                'DATA CLEANING': 'bg-teal-100 text-teal-800'
+            };
+            return colors[actionType] || 'bg-gray-100 text-gray-800';
+        }
+
+        function updateRecordsCount() {
+            const data = JSON.parse(localStorage.getItem('pfmea_data') || '[]');
+            document.getElementById('totalRecordsDisplay').textContent = `Total Records: ${data.length}`;
+        }
+
+        function initFreshDatabase() {
+            const existing = localStorage.getItem('pfmea_data');
+            if (!existing) {
+                localStorage.setItem('pfmea_data', JSON.stringify([]));
+                console.log('✅ Fresh database initialized');
+            }
+            updateRecordsCount();
+        }
+
+        function loadStations() {
+            const stationSelect = document.getElementById('stationSelect');
+            const savedData = localStorage.getItem('ather_infrastructure');
+
+            if (savedData) {
+                stationsData = JSON.parse(savedData);
+            } else {
+                stationsData = [
+                    { id: 'GA-10', name: 'LH case Fill plug assembly', code: 'GA-10', operations: [] },
+                    { id: 'GA-20', name: 'RH case bearing and LH case oil seal pressing', code: 'GA-20', operations: [] },
+                    { id: 'GA-30', name: 'LH case bearing and RH case oil seal pressing', code: 'GA-30', operations: [] },
+                    { id: 'GA-40', name: 'Dowel pin and gasket & gears assembly', code: 'GA-40', operations: [] },
+                    { id: 'GA-50', name: 'Closing of LH & RH Gear case', code: 'GA-50', operations: [] },
+                    { id: 'GA-60', name: 'LH & RH Gear case final torquing', code: 'GA-60', operations: [] },
+                    { id: 'GA-70', name: 'Backlash checking and Leak test', code: 'GA-70', operations: [] },
+                    { id: 'GA-90', name: 'Oil filling', code: 'GA-90', operations: [] },
+                    { id: 'GA-100', name: 'Oil Drain plug tightening', code: 'GA-100', operations: [] },
+                    { id: 'GA-110', name: 'EOL - NVH', code: 'GA-110', operations: [] }
+                ];
+            }
+
+            stationSelect.innerHTML = '<option value="" disabled selected>-- Select Station --</option>';
+            stationsData.forEach(station => {
+                const option = document.createElement('option');
+                option.value = station.code;
+                option.textContent = `${station.code} - ${station.name}`;
+                stationSelect.appendChild(option);
+            });
+        }
+
+        document.getElementById('stationSelect').addEventListener('change', function() {
+            const stationCode = this.value;
+            const operationSelect = document.getElementById('operationSelect');
+            
+            const selectedStation = stationsData.find(s => s.code === stationCode);
+            
+            operationSelect.innerHTML = '<option value="" disabled selected>-- Select Operation --</option>';
+            
+            if (selectedStation && selectedStation.operations && selectedStation.operations.length > 0) {
+                operationSelect.disabled = false;
+                operationSelect.classList.remove('bg-gray-50');
+                
+                selectedStation.operations.forEach(op => {
+                    const option = document.createElement('option');
+                    option.value = op.description;
+                    option.textContent = `${op.code} - ${op.description}`;
+                    operationSelect.appendChild(option);
+                });
+            } else {
+                operationSelect.disabled = true;
+                operationSelect.classList.add('bg-gray-50');
+                alert('⚠️ No operations configured for this station. Please add operations in Stations page.');
+            }
+        });
+
+        const processTypeSelect = document.getElementById('processType');
+        const failureModeSelect = document.getElementById('failureMode');
+        const failureEffectInput = document.getElementById('failureEffect');
+
+        Object.keys(pfmeaData).forEach(type => {
+            let option = document.createElement('option'); 
+            option.value = type; 
+            option.textContent = type;
+            processTypeSelect.appendChild(option);
+        });
+
+        processTypeSelect.addEventListener('change', function() {
+            failureModeSelect.innerHTML = '<option value="" disabled selected>-- Select Failure Mode --</option>';
+            failureModeSelect.disabled = false; 
+            failureModeSelect.classList.remove('bg-gray-50');
+            failureEffectInput.disabled = true; 
+            failureEffectInput.classList.add('bg-gray-50');
+            
+            if (pfmeaData[this.value]) {
+                pfmeaData[this.value].forEach(mode => {
+                    let option = document.createElement('option'); 
+                    option.value = mode; 
+                    option.textContent = mode;
+                    failureModeSelect.appendChild(option);
+                });
+            }
+        });
+
+        failureModeSelect.addEventListener('change', function() {
+            if (this.value !== "") { 
+                failureEffectInput.disabled = false; 
+                failureEffectInput.classList.remove('bg-gray-50'); 
+            }
+        });
+
+        function calculateAP(s, o, d) {
+            s = parseInt(s) || 1; o = parseInt(o) || 1; d = parseInt(d) || 1;
+            if (s === 1) return "L"; 
+            if (s >= 9) {
+                if (o >= 8) return "H";
+                if (o >= 4) return (d >= 2) ? "H" : "M";
+                return (d >= 5) ? "H" : (d >= 2 ? "M" : "L");
+            }
+            if (s >= 7) {
+                if (o >= 8) return "H";
+                if (o >= 4) return (d >= 5) ? "H" : "M";
+                return (d >= 5) ? "M" : "L";
+            }
+            if (s >= 4) {
+                if (o >= 6) return (d >= 5) ? "H" : "M";
+                return (d >= 5) ? "M" : "L";
+            }
+            if (o >= 6) return (d >= 5) ? "M" : "L";
+            return "L";
+        }
+
+        function updateActionRequirement() {
+            const s = parseInt(document.getElementById('sev').value) || 0;
+            const o = parseInt(document.getElementById('occ').value) || 0;
+            const d = parseInt(document.getElementById('det').value) || 0;
+            
+            if (s > 0 && o > 0 && d > 0) {
+                const ap = calculateAP(s, o, d);
+                const actionField = document.getElementById('actionToBeTaken');
+                const actionLabel = document.getElementById('actionRequiredLabel');
+                const actionHelp = document.getElementById('actionHelpText');
+                
+                if (ap === 'H' || ap === 'M') {
+                    actionField.required = true;
+                    actionLabel.classList.remove('hidden');
+                    actionField.classList.add('border-red-500', 'bg-red-50');
+                    actionHelp.innerHTML = '⚠️ <strong>MANDATORY:</strong> Action Priority is <strong>' + ap + '</strong> - Please specify corrective/preventive actions';
+                    actionHelp.classList.add('text-red-600', 'font-semibold');
+                } else {
+                    actionField.required = false;
+                    actionLabel.classList.add('hidden');
+                    actionField.classList.remove('border-red-500', 'bg-red-50');
+                    actionHelp.innerHTML = '💡 This field is optional for Low Priority items';
+                    actionHelp.classList.remove('text-red-600', 'font-semibold');
+                }
+            }
+        }
+
+        document.getElementById('sev').addEventListener('input', updateActionRequirement);
+        document.getElementById('occ').addEventListener('input', updateActionRequirement);
+        document.getElementById('det').addEventListener('input', updateActionRequirement);
+
+        function saveToDatabase(data, source = 'manual') {
+            const existingDb = JSON.parse(localStorage.getItem('pfmea_data') || '[]');
+            
+            const record = {
+                station: data.station,
+                process_step: data.operation,
+                requirement: data.requirement,
+                process_type: data.processType || '',
+                failure_mode: data.mode,
+                failure_effect: data.effect,
+                severity: parseInt(data.s) || 1,
+                classification: data.classification || 'None',
+                potential_cause: data.cause,
+                occurrence: parseInt(data.o) || 1,
+                prevention_control: data.prev,
+                detection_control: data.det,
+                detection: parseInt(data.d) || 1,
+                action_priority: calculateAP(data.s, data.o, data.d),
+                action_to_be_taken: data.actionToBeTaken || '',
+                timestamp: new Date().toISOString(),
+                source: source
+            };
+
+            existingDb.push(record);
+            localStorage.setItem('pfmea_data', JSON.stringify(existingDb));
+            updateRecordsCount();
+        }
+
+        function showSuccessMessage(count = 1) {
+            const msg = document.getElementById('successMessage');
+            const text = document.getElementById('successText');
+            text.innerHTML = `✓ ${count} record(s) saved! View in <a href="database.html" class="underline font-bold">Database</a>.`;
+            msg.classList.remove('hidden');
+            setTimeout(() => msg.classList.add('hidden'), 5000);
+        }
+
+        function hideSuccessMessage() {
+            document.getElementById('successMessage').classList.add('hidden');
+        }
+
+        document.getElementById('pfmeaForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                station: document.getElementById('stationSelect').value,
+                operation: document.getElementById('operationSelect').value,
+                requirement: document.getElementById('requirement').value,
+                processType: document.getElementById('processType').value,
+                mode: document.getElementById('failureMode').value,
+                effect: document.getElementById('failureEffect').value,
+                s: document.getElementById('sev').value,
+                classification: document.getElementById('classification').value,
+                cause: document.getElementById('cause').value,
+                o: document.getElementById('occ').value,
+                prev: document.getElementById('prevControl').value,
+                det: document.getElementById('detControl').value,
+                d: document.getElementById('det').value,
+                actionToBeTaken: document.getElementById('actionToBeTaken').value
+            };
+            
+            const ap = calculateAP(formData.s, formData.o, formData.d);
+            if ((ap === 'H' || ap === 'M') && !formData.actionToBeTaken.trim()) {
+                alert('⚠️ Action to be Taken is MANDATORY for High/Medium priority items!\n\nPlease describe the corrective or preventive actions that will be taken.');
+                document.getElementById('actionToBeTaken').focus();
+                document.getElementById('actionToBeTaken').classList.add('border-red-500', 'bg-red-50');
+                return;
+            }
+            
+            showUserModal(formData, 'manual_entry');
+        });
+
+        function parseCSVText(text) {
+            let lines = [], row = [""], inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i], next = text[i+1];
+                if (c === '"') {
+                    if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; } 
+                    else { inQuotes = !inQuotes; }
+                } else if (c === ',' && !inQuotes) { row.push(''); } 
+                else if ((c === '\r' || c === '\n') && !inQuotes) {
+                    if (c === '\r' && next === '\n') { i++; }
+                    lines.push(row); row = [''];
+                } else { row[row.length - 1] += c; }
+            }
+            if (row.length > 1 || row[0] !== '') lines.push(row);
+            return lines;
+        }
+
+        function autoDetectMapping(headers) {
+            const mapping = {};
+            const headerLower = headers.map(h => h.toLowerCase().trim());
+            
+            headerLower.forEach((header, idx) => {
+                if (header.includes('station')) mapping.station = idx;
+                else if (header.includes('process step') || header.includes('operation') || header.includes('op desc')) mapping.operation = idx;
+                else if (header.includes('requirement') || header.includes('req')) mapping.requirement = idx;
+                else if (header.includes('process type') || header.includes('processtype')) mapping.processType = idx;
+                else if (header.includes('failure mode') && !header.includes('effect')) mapping.mode = idx;
+                else if (header.includes('failure effect') || header.includes('effect')) mapping.effect = idx;
+                else if (header.includes('severity') || header === 's') mapping.s = idx;
+                else if (header.includes('classification') || header.includes('class')) mapping.classification = idx;
+                else if (header.includes('cause') || header.includes('potential cause')) mapping.cause = idx;
+                else if (header.includes('occurrence') || header === 'o') mapping.o = idx;
+                else if (header.includes('prevention')) mapping.prev = idx;
+                else if (header.includes('detection control')) mapping.detControl = idx;
+                else if ((header.includes('detection') && !header.includes('control')) || header === 'd') mapping.d = idx;
+                else if (header.includes('action') && (header.includes('taken') || header.includes('to be'))) mapping.actionToBeTaken = idx;
+            });
+            
+            return mapping;
+        }
+
+        function showColumnMapping(headers, data) {
+            detectedHeaders = headers;
+            parsedFileData = data;
+            columnMapping = autoDetectMapping(headers);
+            
+            const container = document.getElementById('columnMappingContainer');
+            container.innerHTML = '';
+            
+            requiredFields.forEach(field => {
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-2 gap-4 items-center p-4 bg-slate-50 rounded border';
+                
+                const autoMapped = columnMapping[field.key] !== undefined;
+                
+                div.innerHTML = `
+                    <div>
+                        <label class="font-semibold text-slate-700">${field.label}</label>
+                        ${field.required ? '<span class="text-red-500 text-xs ml-1">*Required</span>' : ''}
+                    </div>
+                    <select id="map_${field.key}" class="w-full rounded border-gray-300 shadow-sm border p-2 text-sm ${autoMapped ? 'bg-green-50 border-green-500' : ''}">
+                        <option value="">-- Not Mapped --</option>
+                        ${headers.map((h, idx) => `
+                            <option value="${idx}" ${columnMapping[field.key] === idx ? 'selected' : ''}>
+                                ${h} ${autoMapped && columnMapping[field.key] === idx ? '✓' : ''}
+                            </option>
+                        `).join('')}
+                    </select>
+                `;
+                
+                container.appendChild(div);
+            });
+            
+            document.getElementById('columnMappingModal').classList.remove('hidden');
+        }
+
+        function closeColumnMapping() {
+            document.getElementById('columnMappingModal').classList.add('hidden');
+            parsedFileData = null;
+            detectedHeaders = [];
+            columnMapping = {};
+        }
+
+        function confirmColumnMapping() {
+            const finalMapping = {};
+            let missingRequired = [];
+            
+            requiredFields.forEach(field => {
+                const select = document.getElementById(`map_${field.key}`);
+                const value = select.value;
+                
+                if (value === '' && field.required) {
+                    missingRequired.push(field.label);
+                } else if (value !== '') {
+                    finalMapping[field.key] = parseInt(value);
+                }
+            });
+            
+            if (missingRequired.length > 0) {
+                alert(`⚠️ Please map these required fields:\n${missingRequired.join('\n')}`);
+                return;
+            }
+            
+            window.tempFinalMapping = finalMapping;
+            showUserModal(null, 'bulk_import');
+        }
+
+        document.getElementById('csvUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            uploadedFileName = file.name;
+            const fileName = file.name.toLowerCase();
+            const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+            
+            showProcessingInfo('🔄 Reading file and cleaning data...');
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(evt) {
+                let headers = [];
+                let dataRows = [];
+                
+                if (isExcel) {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                    
+                    let headerRowIndex = 0;
+                    for (let i = 0; i < jsonData.length; i++) {
+                        if (jsonData[i].some(cell => cell && cell.toString().toLowerCase().includes('requirement'))) {
+                            headerRowIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    headers = jsonData[headerRowIndex].map(h => h ? h.toString().trim() : '');
+                    
+                    const rawDataRows = jsonData.slice(headerRowIndex + 1);
+                    dataRows = cleanDataArray(rawDataRows);
+                    
+                } else {
+                    const rawParsedRows = parseCSVText(evt.target.result);
+                    
+                    let headerRowIndex = 0;
+                    for (let i = 0; i < rawParsedRows.length; i++) {
+                        const mergedRowString = rawParsedRows[i].join(" ").toLowerCase();
+                        if (mergedRowString.includes("requirement") || mergedRowString.includes("failure mode")) {
+                            headerRowIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    headers = rawParsedRows[headerRowIndex].map(h => h.trim());
+                    
+                    const rawDataRows = rawParsedRows.slice(headerRowIndex + 1);
+                    dataRows = cleanDataArray(rawDataRows);
+                }
+                
+                if (headers.length === 0 || dataRows.length === 0) {
+                    hideProcessingInfo();
+                    alert('⚠️ Could not detect valid data in the file.');
+                    return;
+                }
+                
+                if (cleanedCellsCount > 0) {
+                    showProcessingInfo(`✅ Cleaned ${cleanedCellsCount} NA/null values from ALL columns. Ready for column mapping.`);
+                    setTimeout(hideProcessingInfo, 3000);
+                } else {
+                    hideProcessingInfo();
+                }
+                
+                showColumnMapping(headers, dataRows);
+            };
+            
+            reader.onerror = function() {
+                hideProcessingInfo();
+                alert('❌ Error reading file');
+            };
+            
+            if (isExcel) {
+                reader.readAsArrayBuffer(file);
+            } else {
+                reader.readAsText(file);
+            }
+            
+            e.target.value = '';
+        });
+
+        function addChangeLog(rev, dateTime, actionType, author, desc) {
+            const tr = document.createElement('tr');
+            const actionColor = getActionColor(actionType);
+            
+            tr.innerHTML = `
+                <td class="px-4 py-2 border-r border-gray-200 font-bold text-slate-700">Rev ${rev}</td>
+                <td class="px-4 py-2 border-r border-gray-200 text-gray-600 text-xs">${dateTime}</td>
+                <td class="px-4 py-2 border-r border-gray-200">
+                    <span class="px-2 py-1 rounded text-xs font-semibold ${actionColor}">${actionType}</span>
+                </td>
+                <td class="px-4 py-2 border-r border-gray-200 text-gray-800">${author}</td>
+                <td class="px-4 py-2 text-gray-700 italic">${desc}</td>
+            `;
+            document.getElementById('changeLogBody').prepend(tr);
+        }
+
+        document.getElementById('changeLogForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentRevision++;
+            document.getElementById('currentRevDisplay').textContent = "Current Rev: " + currentRevision;
+            
+            const author = document.getElementById('changeAuthor').value;
+            const description = document.getElementById('changeDesc').value;
+            
+            addAuditLog('MANUAL CHANGE', author, description);
+            
+            this.reset();
+        });
+
+        window.onload = function() {
+            initFreshDatabase();
+            initAuditLog();
+            loadStations();
+            loadAuditLogs();
+            
+            const auditLog = JSON.parse(localStorage.getItem('pfmea_audit_log') || '[]');
+            if (auditLog.length === 0) {
+                addAuditLog('SYSTEM', 'System', 'PFMEA system initialized with 8 process types and 54 standard failure modes. Auto data cleaning enabled for ALL columns.');
+            }
+        };
+    </script>
+</body>
+</html>

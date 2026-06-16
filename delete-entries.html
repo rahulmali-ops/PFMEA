@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Database Entries - Ather PFMEA</title>
+  <link rel="stylesheet" href="database.css">
+  <script src="auth.js"></script>
+  <style>
+    .delete-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .delete-card {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .delete-card:hover {
+      border-color: #dc2626;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .delete-card-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .delete-card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ather-dark);
+    }
+    
+    .delete-card p {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 16px;
+    }
+    
+    .warning-box {
+      background: #fef2f2;
+      border-left: 4px solid #dc2626;
+      padding: 16px;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+    
+    .warning-box h4 {
+      color: #dc2626;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .selection-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+    
+    .selection-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    
+    .selection-item:hover {
+      background: #fef2f2;
+      border-color: #fca5a5;
+    }
+    
+    .selection-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .item-details {
+      flex: 1;
+    }
+    
+    .item-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--ather-dark);
+    }
+    
+    .item-subtitle {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="navbar-brand" onclick="window.location.href='index.html'" style="cursor: pointer;">
+        <div class="navbar-brand-icon">⚙️</div>
+        <span>Ather PFMEA</span>
+      </div>
+      
+      <button class="navbar-toggle" onclick="toggleMobileMenu()">☰</button>
+      
+      <ul class="navbar-menu" id="navbarMenu">
+        <li class="navbar-item">
+          <a href="database.html" class="navbar-link">📊 Database</a>
+        </li>
+        <li class="navbar-item">
+          <a href="pfmea-entry.html" class="navbar-link">📝 Add Entry</a>
+        </li>
+        <li class="navbar-item">
+          <a href="stations.html" class="navbar-link">🏭 Stations</a>
+        </li>
+        <li class="navbar-divider"></li>
+        <li class="navbar-item">
+          <a href="user-management.html" class="navbar-link" id="userMgmtLink">👥 Users</a>
+        </li>
+        <li class="navbar-item">
+          <a href="index.html" class="navbar-link">🏠 Home</a>
+        </li>
+        <li class="navbar-item">
+          <button onclick="logoutUser()" class="navbar-link logout-btn" style="background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #dc2626; cursor: pointer; font-weight: 600;">
+            🚪 Logout
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="index.html">Home</a>
+    <span class="breadcrumb-separator">/</span>
+    <a href="database.html">Database</a>
+    <span class="breadcrumb-separator">/</span>
+    <span>Delete Entries</span>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div>
+      <h1>Delete Database Entries</h1>
+      <p class="header-subtitle">Manage and remove PFMEA records</p>
+    </div>
+    <div class="header-info" id="userInfo">
+      <!-- User info will be injected by auth.js -->
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 24px;">
+    
+    <!-- Warning Box -->
+    <div class="warning-box">
+      <h4>⚠️ Warning: Permanent Action</h4>
+      <p style="font-size: 13px; color: #991b1b; margin: 0;">
+        Deleting database entries is permanent and cannot be undone. Please review your selection carefully before confirming deletion.
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="stat-label">Total Records</div>
+        <div class="stat-value" id="totalRecords">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Selected for Deletion</div>
+        <div class="stat-value" id="selectedCount" style="color: #dc2626;">0</div>
+      </div>
+    </div>
+
+    <!-- Delete Options -->
+    <div class="delete-options">
+      <div class="delete-card" onclick="showSelectiveDelete()">
+        <div class="delete-card-icon">🎯</div>
+        <h3>Selective Delete</h3>
+        <p>Choose specific records to delete from the database</p>
+        <button class="btn btn-warning">Select Records</button>
+      </div>
+
+      <div class="delete-card" onclick="showFilterDelete()">
+        <div class="delete-card-icon">🔍</div>
+        <h3>Delete by Filter</h3>
+        <p>Delete records matching specific criteria (Station, Priority, etc.)</p>
+        <button class="btn btn-warning">Filter & Delete</button>
+      </div>
+
+      <div class="delete-card" onclick="confirmDeleteAll()">
+        <div class="delete-card-icon">🗑️</div>
+        <h3>Delete All Records</h3>
+        <p>Permanently remove all PFMEA records from the database</p>
+        <button class="btn btn-danger">Delete Everything</button>
+      </div>
+    </div>
+
+    <!-- Selective Delete Section -->
+    <div id="selectiveDeleteSection" style="display: none;">
+      <div class="card" style="margin-top: 24px;">
+        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Select Records to Delete</h3>
+        
+        <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-small" onclick="selectAllRecords()">✓ Select All</button>
+          <button class="btn btn-secondary btn-small" onclick="deselectAllRecords()">✗ Deselect All</button>
+          <button class="btn btn-secondary btn-small" onclick="selectHighPriority()">⚠️ Select High Priority</button>
+        </div>
+
+        <div class="selection-list" id="recordsList"></div>
+
+        <div class="form-buttons" style="margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="cancelDelete()">Cancel</button>
+          <button class="btn btn-danger" onclick="deleteSelectedRecords()">🗑️ Delete Selected (<span id="deleteCount">0</span>)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Delete Section -->
+    <div id="filterDeleteSection" style="display: none;">
+      <div class="card" style="margin-top: 24px;">
+        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Delete by Filter</h3>
+        
+        <div class="filter-grid">
+          <div class="filter-group">
+            <label for="filterStation">Station</label>
+            <select id="filterStation">
+              <option value="">All Stations</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="filterPriority">Action Priority</label>
+            <select id="filterPriority">
+              <option value="">All Priorities</option>
+              <option value="H">High (H)</option>
+              <option value="M">Medium (M)</option>
+              <option value="L">Low (L)</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="filterClass">Classification</label>
+            <select id="filterClass">
+              <option value="">All Classifications</option>
+              <option value="SC">Safety Critical (SC)</option>
+              <option value="CC">Critical Characteristic (CC)</option>
+              <option value="None">None</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 8px;">
+            Matching records: <strong id="matchingCount">0</strong>
+          </p>
+          <button class="btn btn-primary btn-small" onclick="previewFilteredRecords()">🔍 Preview Matching Records</button>
+        </div>
+
+        <div id="filteredPreview" style="display: none; margin-top: 16px;">
+          <div class="selection-list" id="filteredRecordsList"></div>
+        </div>
+
+        <div class="form-buttons" style="margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="cancelDelete()">Cancel</button>
+          <button class="btn btn-danger" onclick="deleteFilteredRecords()">🗑️ Delete Matching Records</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Check permissions
+    if (!hasPermission('engineer')) {
+      alert('Access denied. Engineer or Admin privileges required to delete records.');
+      window.location.href = 'index.html';
+    }
+
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      const menu = document.getElementById('navbarMenu');
+      menu.classList.toggle('active');
+    }
+
+    let allData = [];
+    let selectedRecords = new Set();
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      updateStats();
+      populateStationFilter();
+    });
+
+    function loadData() {
+      const data = localStorage.getItem('pfmea_data');
+      allData = data ? JSON.parse(data) : [];
+    }
+
+    function updateStats() {
+      document.getElementById('totalRecords').textContent = allData.length;
+      document.getElementById('selectedCount').textContent = selectedRecords.size;
+      if (document.getElementById('deleteCount')) {
+        document.getElementById('deleteCount').textContent = selectedRecords.size;
+      }
+    }
+
+    function populateStationFilter() {
+      const stations = [...new Set(allData.map(d => d.station))].sort();
+      const select = document.getElementById('filterStation');
+      if (select) {
+        select.innerHTML = '<option value="">All Stations</option>';
+        stations.forEach(station => {
+          const option = document.createElement('option');
+          option.value = station;
+          option.textContent = station;
+          select.appendChild(option);
+        });
+      }
+    }
+
+    function showSelectiveDelete() {
+      document.getElementById('selectiveDeleteSection').style.display = 'block';
+      document.getElementById('filterDeleteSection').style.display = 'none';
+      renderRecordsList();
+    }
+
+    function showFilterDelete() {
+      document.getElementById('selectiveDeleteSection').style.display = 'none';
+      document.getElementById('filterDeleteSection').style.display = 'block';
+    }
+
+    function renderRecordsList() {
+      const container = document.getElementById('recordsList');
+      container.innerHTML = '';
+
+      if (allData.length === 0) {
+        container.innerHTML = '<div style="padding: 40px; text-align: center; color: #64748b;">No records found in database</div>';
+        return;
+      }
+
+      allData.forEach((record, index) => {
+        const div = document.createElement('div');
+        div.className = 'selection-item';
+        div.innerHTML = `
+          <input type="checkbox" id="record_${index}" onchange="toggleRecord(${index})">
+          <div class="item-details">
+            <div class="item-title">${record.station || 'N/A'} - ${record.requirement || 'N/A'}</div>
+            <div class="item-subtitle">
+              ${record.failure_mode || 'N/A'} | Priority: ${record.action_priority || 'N/A'} | 
+              ${record.classification || 'None'}
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function toggleRecord(index) {
+      if (selectedRecords.has(index)) {
+        selectedRecords.delete(index);
+      } else {
+        selectedRecords.add(index);
+      }
+      updateStats();
+    }
+
+    function selectAllRecords() {
+      selectedRecords.clear();
+      allData.forEach((_, index) => {
+        selectedRecords.add(index);
+        const checkbox = document.getElementById(`record_${index}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      updateStats();
+    }
+
+    function deselectAllRecords() {
+      selectedRecords.clear();
+      allData.forEach((_, index) => {
+        const checkbox = document.getElementById(`record_${index}`);
+        if (checkbox) checkbox.checked = false;
+      });
+      updateStats();
+    }
+
+    function selectHighPriority() {
+      deselectAllRecords();
+      allData.forEach((record, index) => {
+        if (record.action_priority === 'H') {
+          selectedRecords.add(index);
+          const checkbox = document.getElementById(`record_${index}`);
+          if (checkbox) checkbox.checked = true;
+        }
+      });
+      updateStats();
+    }
+
+    function deleteSelectedRecords() {
+      if (selectedRecords.size === 0) {
+        alert('⚠️ Please select at least one record to delete');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete ${selectedRecords.size} record(s)?\n\nThis action cannot be undone!`)) {
+        return;
+      }
+
+      const indicesToDelete = Array.from(selectedRecords).sort((a, b) => b - a);
+      indicesToDelete.forEach(index => {
+        allData.splice(index, 1);
+      });
+
+      localStorage.setItem('pfmea_data', JSON.stringify(allData));
+      selectedRecords.clear();
+      
+      alert(`✅ Successfully deleted ${indicesToDelete.length} record(s)`);
+      loadData();
+      updateStats();
+      renderRecordsList();
+    }
+
+    function previewFilteredRecords() {
+      const station = document.getElementById('filterStation').value;
+      const priority = document.getElementById('filterPriority').value;
+      const classification = document.getElementById('filterClass').value;
+
+      const filtered = allData.filter(record => {
+        if (station && record.station !== station) return false;
+        if (priority && record.action_priority !== priority) return false;
+        if (classification && record.classification !== classification) return false;
+        return true;
+      });
+
+      document.getElementById('matchingCount').textContent = filtered.length;
+      
+      const container = document.getElementById('filteredRecordsList');
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="padding: 40px; text-align: center; color: #64748b;">No records match the selected filters</div>';
+      } else {
+        filtered.forEach(record => {
+          const div = document.createElement('div');
+          div.className = 'selection-item';
+          div.innerHTML = `
+            <div class="item-details">
+              <div class="item-title">${record.station || 'N/A'} - ${record.requirement || 'N/A'}</div>
+              <div class="item-subtitle">
+                ${record.failure_mode || 'N/A'} | Priority: ${record.action_priority || 'N/A'}
+              </div>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      document.getElementById('filteredPreview').style.display = 'block';
+    }
+
+    function deleteFilteredRecords() {
+      const station = document.getElementById('filterStation').value;
+      const priority = document.getElementById('filterPriority').value;
+      const classification = document.getElementById('filterClass').value;
+
+      const filtered = allData.filter(record => {
+        if (station && record.station !== station) return false;
+        if (priority && record.action_priority !== priority) return false;
+        if (classification && record.classification !== classification) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        alert('⚠️ No records match the selected filters');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete ${filtered.length} record(s) matching the filters?\n\nThis action cannot be undone!`)) {
+        return;
+      }
+
+      allData = allData.filter(record => {
+        if (station && record.station === station) return false;
+        if (priority && record.action_priority === priority) return false;
+        if (classification && record.classification === classification) return false;
+        return true;
+      });
+
+      localStorage.setItem('pfmea_data', JSON.stringify(allData));
+      
+      alert(`✅ Successfully deleted ${filtered.length} record(s)`);
+      loadData();
+      updateStats();
+      cancelDelete();
+    }
+
+    function confirmDeleteAll() {
+      const count = allData.length;
+      
+      if (count === 0) {
+        alert('⚠️ Database is already empty!');
+        return;
+      }
+
+      if (!confirm(`⚠️ WARNING: This will permanently delete ALL ${count} records from the database!\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`)) {
+        return;
+      }
+
+      if (!confirm(`FINAL CONFIRMATION: Delete all ${count} records?`)) {
+        return;
+      }
+
+      localStorage.setItem('pfmea_data', JSON.stringify([]));
+      allData = [];
+      
+      alert('✅ Database has been completely cleared');
+      loadData();
+      updateStats();
+    }
+
+    function cancelDelete() {
+      document.getElementById('selectiveDeleteSection').style.display = 'none';
+      document.getElementById('filterDeleteSection').style.display = 'none';
+      selectedRecords.clear();
+      updateStats();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Start Guide - Ather PFMEA</title>
+  <style>
+    :root {
+      --ather-green: #17b890;
+      --ather-dark: #0f1419;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    header {
+      background: linear-gradient(135deg, var(--ather-dark) 0%, #1a1f2e 100%);
+      color: white;
+      padding: 40px;
+      border-radius: 12px;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    
+    .section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    h2 {
+      font-size: 24px;
+      color: var(--ather-dark);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--ather-green);
+    }
+    
+    h3 {
+      font-size: 18px;
+      color: var(--ather-dark);
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    
+    .step {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 4px solid var(--ather-green);
+    }
+    
+    .step-number {
+      display: inline-block;
+      background: var(--ather-green);
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 30px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .credentials {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .credentials h4 {
+      color: #92400e;
+      margin-bottom: 10px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    
+    table th,
+    table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    table th {
+      background: #f1f5f9;
+      font-weight: 600;
+    }
+    
+    .warning {
+      background: #fef2f2;
+      border-left: 4px solid #dc2626;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+    
+    .warning strong {
+      color: #dc2626;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: var(--ather-green);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      margin-top: 20px;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover {
+      background: #0f9670;
+      transform: translateY(-2px);
+    }
+    
+    ul {
+      margin-left: 20px;
+      margin-top: 10px;
+    }
+    
+    li {
+      margin-bottom: 8px;
+    }
+    
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 Quick Start Guide</h1>
+      <p class="subtitle">Get started with Ather PFMEA System in 5 minutes</p>
+    </header>
+
+    <div class="section">
+      <h2>📋 Overview</h2>
+      <p>The Ather PFMEA System is a comprehensive tool for managing Process Failure Mode and Effects Analysis with built-in authentication and role-based access control.</p>
+      
+      <div class="credentials">
+        <h4>🔑 Default Login Credentials</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Permissions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Admin</strong></td>
+              <td><code>admin</code></td>
+              <td><code>admin123</code></td>
+              <td>Full access + User management</td>
+            </tr>
+            <tr>
+              <td><strong>Engineer</strong></td>
+              <td><code>engineer</code></td>
+              <td><code>engineer123</code></td>
+              <td>Add/Edit/Delete entries</td>
+            </tr>
+            <tr>
+              <td><strong>Viewer</strong></td>
+              <td><code>viewer</code></td>
+              <td><code>viewer123</code></td>
+              <td>Read-only access</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎯 Getting Started (5 Steps)</h2>
+      
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>Login to the System</strong>
+        <ul>
+          <li>Open <code>login.html</code> in your browser</li>
+          <li>Use admin credentials: <code>admin</code> / <code>admin123</code></li>
+          <li>Click "Sign In" or use Quick Login buttons</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>Configure Stations</strong>
+        <ul>
+          <li>Navigate to "Plant Infrastructure" from dashboard</li>
+          <li>Click on a station to add operations</li>
+          <li>Add operation codes and descriptions</li>
+          <li>Or use the pre-configured GA-10 to GA-110 stations</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>Add PFMEA Entries</strong>
+        <ul>
+          <li>Go to "Risk Assessment Form"</li>
+          <li>Fill in the form fields (Station, Operation, Failure Mode, etc.)</li>
+          <li>System auto-calculates Action Priority</li>
+          <li>Click "Save to Database"</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <span class="step-number">4</span>
+        <strong>Import Bulk Data (Optional)</strong>
+        <ul>
+          <li>Navigate to "Database Entry & Import"</li>
+          <li>Upload your Excel/CSV file</li>
+          <li>Map columns to PFMEA fields</li>
+          <li>Preview and confirm import</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <span class="step-number">5</span>
+        <strong>View & Manage Data</strong>
+        <ul>
+          <li>Go to "Central Data Ledger"</li>
+          <li>Use filters to find specific records</li>
+          <li>Click cells to edit (requires Engineer role)</li>
+          <li>Export data as CSV when needed</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>👥 User Management (Admin Only)</h2>
+      
+      <h3>Adding New Users</h3>
+      <ol>
+        <li>Login as admin</li>
+        <li>Navigate to User Management page</li>
+        <li>Click "Add New User"</li>
+        <li>Fill in user details and select role</li>
+        <li>User can now login with their credentials</li>
+      </ol>
+
+      <h3>Changing User Roles</h3>
+      <ol>
+        <li>Go to User Management</li>
+        <li>Click "Edit" on the user</li>
+        <li>Enter new role (admin/engineer/viewer)</li>
+        <li>Changes take effect immediately</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h2>📊 Key Features</h2>
+      
+      <h3>Search & Filter</h3>
+      <ul>
+        <li>Search across all fields</li>
+        <li>Filter by station, priority, severity, classification</li>
+        <li>Combine multiple filters</li>
+        <li>Export filtered results</li>
+      </ul>
+
+      <h3>Data Entry</h3>
+      <ul>
+        <li>Manual entry with validation</li>
+        <li>Bulk import from Excel/CSV</li>
+        <li>Auto-calculation of Action Priority (AIAG-VDA method)</li>
+        <li>Smart data cleaning (removes NA values)</li>
+      </ul>
+
+      <h3>Audit & Tracking</h3>
+      <ul>
+        <li>Complete audit trail for all changes</li>
+        <li>User identification for entries</li>
+        <li>Cell-level comments</li>
+        <li>Change history tracking</li>
+      </ul>
+
+      <h3>Collaboration</h3>
+      <ul>
+        <li>Multiple user roles</li>
+        <li>Comments on cells</li>
+        <li>Activity logging</li>
+        <li>Export and share data</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>⚠️ Important Notes</h2>
+      
+      <div class="warning">
+        <strong>⚠️ Security Warning:</strong> This system uses browser localStorage for data storage. For production use, implement proper server-side authentication and database storage.
+      </div>
+
+      <h3>Data Storage</h3>
+      <p>All data is stored locally in your browser. To backup data:</p>
+      <ul>
+        <li>Export database as CSV regularly</li>
+        <li>Export audit trail for compliance</li>
+        <li>Keep backups of exported files</li>
+      </ul>
+
+      <h3>Browser Compatibility</h3>
+      <ul>
+        <li>Chrome (Recommended)</li>
+        <li>Firefox</li>
+        <li>Safari</li>
+        <li>Edge</li>
+      </ul>
+
+      <h3>Best Practices</h3>
+      <ul>
+        <li>Change default passwords immediately</li>
+        <li>Assign appropriate roles to users</li>
+        <li>Regular data exports for backup</li>
+        <li>Review audit trail periodically</li>
+        <li>Use strong passwords for new accounts</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>🆘 Troubleshooting</h2>
+      
+      <h3>Can't Login</h3>
+      <ul>
+        <li>Check username and password (case-sensitive)</li>
+        <li>Clear browser cache and try again</li>
+        <li>Use Quick Login buttons for demo accounts</li>
+      </ul>
+
+      <h3>Session Expired</h3>
+      <ul>
+        <li>Sessions expire after 8 hours (24 hours with "Remember Me")</li>
+        <li>Simply login again to continue</li>
+      </ul>
+
+      <h3>Can't Edit/Delete</h3>
+      <ul>
+        <li>Check your user role (Viewers have read-only access)</li>
+        <li>Contact admin to upgrade your role</li>
+      </ul>
+
+      <h3>Import Not Working</h3>
+      <ul>
+        <li>Ensure file is .xlsx, .xls, or .csv format</li>
+        <li>Check that required columns are present</li>
+        <li>Map columns correctly in the mapping screen</li>
+      </ul>
+    </div>
+
+    <div class="section" style="text-align: center;">
+      <h2>🎉 Ready to Start!</h2>
+      <p>You're all set! Click below to login and start using the PFMEA system.</p>
+      <a href="login.html" class="btn">🔐 Go to Login</a>
+    </div>
+  </div>
+</body>
+</html>

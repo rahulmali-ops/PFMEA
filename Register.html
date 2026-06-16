@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Ather PFMEA</title>
+  <style>
+    :root {
+      --ather-green: #17b890;
+      --ather-dark: #0f1419;
+      --bg: #f8fafc;
+      --text-main: #0f172a;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .register-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 50px 40px;
+    }
+
+    .register-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, var(--ather-green) 0%, #0f9670 100%);
+      color: white;
+      font-weight: 900;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      letter-spacing: 1.5px;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+
+    .register-header h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ather-dark);
+      margin-bottom: 8px;
+    }
+
+    .register-header p {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--ather-green);
+      box-shadow: 0 0 0 4px rgba(23, 184, 144, 0.1);
+    }
+
+    .password-strength {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .strength-bar {
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .strength-fill {
+      height: 100%;
+      width: 0%;
+      transition: all 0.3s ease;
+    }
+
+    .strength-weak { background: #dc2626; width: 33%; }
+    .strength-medium { background: #f59e0b; width: 66%; }
+    .strength-strong { background: #16a34a; width: 100%; }
+
+    .btn-register {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--ather-green) 0%, #0f9670 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 10px;
+    }
+
+    .btn-register:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(23, 184, 144, 0.3);
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .login-link a {
+      color: var(--ather-green);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+
+    .error-message,
+    .success-message {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 13px;
+    }
+
+    .error-message {
+      background: #fef2f2;
+      border-left: 4px solid #dc2626;
+      color: #991b1b;
+    }
+
+    .success-message {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      color: #166534;
+    }
+
+    .error-message.show,
+    .success-message.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .register-container {
+        padding: 40px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="register-container">
+    <div class="register-header">
+      <div class="logo-badge">ATHER ENERGY</div>
+      <h2>Create Account</h2>
+      <p>Join the PFMEA Engineering Suite</p>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+    <div class="success-message" id="successMessage"></div>
+
+    <form id="registerForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="fullName">Full Name *</label>
+          <input type="text" id="fullName" required placeholder="John Doe">
+        </div>
+
+        <div class="form-group">
+          <label for="username">Username *</label>
+          <input type="text" id="username" required placeholder="johndoe">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" required placeholder="john.doe@ather.energy">
+        </div>
+
+        <div class="form-group">
+          <label for="department">Department *</label>
+          <select id="department" required>
+            <option value="">Select Department</option>
+            <option value="Quality">Quality</option>
+            <option value="Manufacturing">Manufacturing</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Operations">Operations</option>
+            <option value="IT">IT</option>
+            <option value="Management">Management</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="role">Role *</label>
+          <select id="role" required>
+            <option value="">Select Role</option>
+            <option value="viewer">Viewer (Read Only)</option>
+            <option value="engineer">Engineer (Edit Access)</option>
+            <option value="admin">Admin (Full Access)</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="password">Password *</label>
+          <input type="password" id="password" required placeholder="Min. 8 characters" oninput="checkPasswordStrength()">
+          <div class="password-strength">
+            <div class="strength-bar">
+              <div class="strength-fill" id="strengthFill"></div>
+            </div>
+            <span id="strengthText"></span>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="confirmPassword">Confirm Password *</label>
+          <input type="password" id="confirmPassword" required placeholder="Re-enter password">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-register">Create Account</button>
+    </form>
+
+    <div class="login-link">
+      Already have an account? <a href="login.html">Sign In</a>
+    </div>
+  </div>
+
+  <script>
+    function checkPasswordStrength() {
+      const password = document.getElementById('password').value;
+      const strengthFill = document.getElementById('strengthFill');
+      const strengthText = document.getElementById('strengthText');
+
+      let strength = 0;
+      if (password.length >= 8) strength++;
+      if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+      if (password.match(/[0-9]/)) strength++;
+      if (password.match(/[^a-zA-Z0-9]/)) strength++;
+
+      strengthFill.className = 'strength-fill';
+      if (strength <= 1) {
+        strengthFill.classList.add('strength-weak');
+        strengthText.textContent = 'Weak password';
+        strengthText.style.color = '#dc2626';
+      } else if (strength <= 3) {
+        strengthFill.classList.add('strength-medium');
+        strengthText.textContent = 'Medium strength';
+        strengthText.style.color = '#f59e0b';
+      } else {
+        strengthFill.classList.add('strength-strong');
+        strengthText.textContent = 'Strong password';
+        strengthText.style.color = '#16a34a';
+      }
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const fullName = document.getElementById('fullName').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const department = document.getElementById('department').value;
+      const role = document.getElementById('role').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (password.length < 8) {
+        showError('Password must be at least 8 characters long');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        showError('Passwords do not match');
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem('pfmea_users') || '[]');
+      const existingUser = users.find(u => u.username === username || u.email === email);
+
+      if (existingUser) {
+        showError('Username or email already exists');
+        return;
+      }
+
+      const newUser = {
+        id: users.length + 1,
+        username: username,
+        email: email,
+        password: password,
+        role: role,
+        fullName: fullName,
+        department: department,
+        createdAt: new Date().toISOString()
+      };
+
+      users.push(newUser);
+      localStorage.setItem('pfmea_users', JSON.stringify(users));
+
+      showSuccess('Account created successfully! Redirecting to login...');
+
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 2000);
+    });
+
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = '⚠️ ' + message;
+      errorDiv.classList.add('show');
+      
+      setTimeout(() => {
+        errorDiv.classList.remove('show');
+      }, 5000);
+    }
+
+    function showSuccess(message) {
+      const successDiv = document.getElementById('successMessage');
+      successDiv.textContent = '✓ ' + message;
+      successDiv.classList.add('show');
+    }
+  </script>
+</body>
+</html>

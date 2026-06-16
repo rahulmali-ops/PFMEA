@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ather Infrastructure Configurations</title>
+  <script src="auth.js"></script>
+  <style>
+    :root {
+      --ather-green: #17b890;
+      --ather-dark: #0f1419;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      padding-bottom: 60px;
+    }
+
+    /* ========== NAVBAR ========== */
+    .navbar {
+      background: linear-gradient(135deg, var(--ather-dark) 0%, #1a1f2e 100%);
+      color: #fff;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 3px solid var(--ather-green);
+    }
+
+    .navbar-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 32px;
+      height: 70px;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      text-decoration: none;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .navbar-brand:hover {
+      color: var(--ather-green);
+    }
+
+    .navbar-brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--ather-green);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .navbar-menu {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      list-style: none;
+    }
+
+    .navbar-item {
+      position: relative;
+    }
+
+    .navbar-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .navbar-link:hover {
+      background: rgba(23, 184, 144, 0.2);
+      color: var(--ather-green);
+      transform: translateY(-2px);
+    }
+
+    .navbar-link.active {
+      background: rgba(23, 184, 144, 0.2);
+      color: var(--ather-green);
+      border-color: var(--ather-green);
+    }
+
+    .logout-btn {
+      background: rgba(220, 38, 38, 0.1) !important;
+      border: 1px solid rgba(220, 38, 38, 0.3) !important;
+      color: #dc2626 !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+    }
+
+    .logout-btn:hover {
+      background: rgba(220, 38, 38, 0.2) !important;
+      border-color: #dc2626 !important;
+    }
+
+    .navbar-divider {
+      width: 1px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 0 8px;
+    }
+
+    .navbar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 10px;
+    }
+
+    .navbar-toggle:hover {
+      color: var(--ather-green);
+    }
+
+    /* ========== BREADCRUMB ========== */
+    .breadcrumb {
+      background: white;
+      padding: 12px 32px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .breadcrumb a {
+      color: var(--ather-green);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    .breadcrumb-separator {
+      color: #cbd5e1;
+    }
+
+    /* ========== HEADER ========== */
+    header {
+      background: white;
+      padding: 24px 32px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--ather-dark);
+      margin: 0;
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    .header-info {
+      text-align: right;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    main { 
+      padding: 32px; 
+      max-width: 1200px; 
+      margin: 0 auto; 
+    }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+      transition: all 0.3s;
+    }
+    
+    .card:hover {
+      box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+      border-color: var(--ather-green);
+    }
+    
+    .card h2 { 
+      font-size: 20px; 
+      font-weight: 600; 
+      margin-bottom: 20px; 
+      color: var(--ather-dark); 
+    }
+
+    .grid-2 { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 20px; 
+    }
+    
+    @media (max-width: 768px) { 
+      .grid-2 { 
+        grid-template-columns: 1fr; 
+      } 
+    }
+
+    .station-list { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); 
+      gap: 16px; 
+      margin-top: 10px; 
+    }
+    
+    .station-card-btn {
+      width: 100%;
+      text-align: left;
+      padding: 20px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    
+    .station-card-btn:hover {
+      border-color: var(--ather-green);
+      box-shadow: 0 4px 12px rgba(23, 184, 144, 0.06);
+      transform: translateY(-2px);
+    }
+    
+    .station-name { 
+      font-weight: 600; 
+      font-size: 15px; 
+      color: var(--ather-dark); 
+    }
+    
+    .station-code { 
+      font-size: 12px; 
+      color: var(--text-muted); 
+      margin-top: 6px; 
+      font-family: monospace; 
+      background: #f1f5f9; 
+      padding: 2px 6px; 
+      border-radius: 4px; 
+      display: inline-block; 
+    }
+
+    label { 
+      font-size: 12px; 
+      font-weight: 600; 
+      color: var(--text-muted); 
+      display: block; 
+      margin-bottom: 6px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+    }
+    
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    input:focus { 
+      outline: none; 
+      border-color: var(--ather-green); 
+      box-shadow: 0 0 0 3px rgba(23, 184, 144, 0.1);
+    }
+
+    button.primary-btn {
+      background: var(--ather-dark);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid transparent;
+    }
+    
+    button.primary-btn:hover { 
+      background: #232329; 
+      border-color: var(--ather-green);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(23, 184, 144, 0.3);
+    }
+    
+    button.delete-btn {
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-left: 8px;
+    }
+    
+    button.delete-btn:hover { 
+      background: #991b1b; 
+    }
+    
+    .hidden { 
+      display: none; 
+    }
+
+    .operation-row {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: #fdfdfd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .operation-row:hover {
+      background: #f8fafc;
+      border-color: var(--ather-green);
+    }
+    
+    .operation-info {
+      flex: 1;
+    }
+    
+    .operation-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ather-dark);
+    }
+    
+    .operation-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .navbar-container {
+        padding: 0 16px;
+        height: auto;
+        flex-wrap: wrap;
+      }
+
+      .navbar-menu {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: var(--ather-dark);
+        flex-direction: column;
+        width: 100%;
+        padding: 10px 0;
+        border-bottom: 3px solid var(--ather-green);
+      }
+
+      .navbar-menu.active {
+        display: flex;
+      }
+
+      .navbar-toggle {
+        display: block;
+      }
+
+      .navbar-link {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 0;
+      }
+
+      .navbar-divider {
+        display: none;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      main {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-container">
+    <div class="navbar-brand" onclick="window.location.href='index.html'" style="cursor: pointer;">
+      <div class="navbar-brand-icon">⚙️</div>
+      <span>Ather PFMEA</span>
+    </div>
+    
+    <button class="navbar-toggle" onclick="toggleMobileMenu()">☰</button>
+    
+    <ul class="navbar-menu" id="navbarMenu">
+      <li class="navbar-item">
+        <a href="database.html" class="navbar-link">📊 Database</a>
+      </li>
+      <li class="navbar-item">
+        <a href="pfmea-entry.html" class="navbar-link">📝 Add Entry</a>
+      </li>
+      <li class="navbar-item">
+        <a href="stations.html" class="navbar-link active">🏭 Stations</a>
+      </li>
+      <li class="navbar-divider"></li>
+      <li class="navbar-item">
+        <a href="user-management.html" class="navbar-link" id="userMgmtLink">👥 Users</a>
+      </li>
+      <li class="navbar-item">
+        <a href="index.html" class="navbar-link">🏠 Home</a>
+      </li>
+      <li class="navbar-item">
+        <button onclick="logoutUser()" class="navbar-link logout-btn">
+          🚪 Logout
+        </button>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a href="index.html">Home</a>
+  <span class="breadcrumb-separator">/</span>
+  <span>Stations Configuration</span>
+</div>
+
+<!-- Header -->
+<header>
+  <div>
+    <h1>🏭 Ather Plant Layout Infrastructure</h1>
+    <p class="header-subtitle">Configure manufacturing stations and operations</p>
+  </div>
+  <div class="header-info" id="userInfo">
+    <!-- User info will be injected by auth.js -->
+  </div>
+</header>
+
+<main>
+  <div id="panelMainStations" class="card">
+    <h2>Active Manufacturing Assembly Stations</h2>
+    <div id="stationContainer" class="station-list"></div>
+
+    <div style="margin-top:40px; border-top: 1px solid var(--border); padding-top: 24px;">
+      <h3 style="font-size:16px; margin-bottom:16px;">Register New Base Station</h3>
+      <div class="grid-2" style="margin-bottom: 16px;">
+        <div><label>Station Descriptive Name</label><input type="text" id="addName" placeholder="e.g., Battery Enclosure Seal Run" /></div>
+        <div><label>Station System Code (Unique ID)</label><input type="text" id="addCode" placeholder="e.g., GA-10" /></div>
+      </div>
+      <button class="primary-btn" id="btnSaveStation">Commit New Station</button>
+    </div>
+  </div>
+
+  <div id="panelOperations" class="card hidden">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h2 id="lblActiveStationTitle" style="margin-bottom:0;">Process Steps / Operations</h2>
+      <button class="primary-btn" id="btnBackToMain" style="background:#fff; color:#121214; border:1px solid #ccc;">← Back to Stations</button>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <h3 style="font-size:16px; margin-bottom:14px;">Registered Operations</h3>
+        <div id="operationListContainer" style="margin-top:12px;"></div>
+      </div>
+
+      <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+        <h3 style="font-size:15px; margin-bottom:14px;">Add New Process Step / Operation</h3>
+        <div style="margin-bottom:12px;">
+          <label>Operation Code/ID</label>
+          <input type="text" id="opCode" placeholder="e.g., OP-10" />
+        </div>
+        <div style="margin-bottom:16px;">
+          <label>Operation Description</label>
+          <input type="text" id="opDesc" placeholder="e.g., LH case Fill plug assembly" />
+        </div>
+        <button class="primary-btn" id="btnSaveOperation" style="width:100%;">Save Operation</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Check permissions - only engineers and admins can modify stations
+  if (!hasPermission('engineer')) {
+    alert('Access denied. Engineer or Admin privileges required to manage stations.');
+    window.location.href = 'index.html';
+  }
+
+  // Mobile menu toggle
+  function toggleMobileMenu() {
+    const menu = document.getElementById('navbarMenu');
+    menu.classList.toggle('active');
+  }
+
+  let workingStations = [];
+  let localActiveStationId = null;
+
+  const savedData = localStorage.getItem('ather_infrastructure');
+  if (savedData) {
+    workingStations = JSON.parse(savedData);
+  } else {
+    workingStations = [
+      { id: 'GA-10', name: 'LH case Fill plug assembly', code: 'GA-10', operations: [] },
+      { id: 'GA-20', name: 'RH case bearing and LH case oil seal pressing', code: 'GA-20', operations: [] },
+      { id: 'GA-30', name: 'LH case bearing and RH case oil seal pressing', code: 'GA-30', operations: [] },
+      { id: 'GA-40', name: 'Dowel pin and gasket & gears assembly', code: 'GA-40', operations: [] },
+      { id: 'GA-50', name: 'Closing of LH & RH Gear case', code: 'GA-50', operations: [] },
+      { id: 'GA-60', name: 'LH & RH Gear case final torquing', code: 'GA-60', operations: [] },
+      { id: 'GA-70', name: 'Backlash checking and Leak test', code: 'GA-70', operations: [] },
+      { id: 'GA-90', name: 'Oil filling', code: 'GA-90', operations: [] },
+      { id: 'GA-100', name: 'Oil Drain plug tightening', code: 'GA-100', operations: [] },
+      { id: 'GA-110', name: 'EOL - NVH', code: 'GA-110', operations: [] }
+    ];
+    localStorage.setItem('ather_infrastructure', JSON.stringify(workingStations));
+  }
+
+  function renderMasterStations() {
+    const container = document.getElementById('stationContainer');
+    container.innerHTML = '';
+    workingStations.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'station-card-btn';
+      btn.onclick = () => showOperationsPanel(s.id);
+      btn.innerHTML = `
+        <div class="station-name">${s.name}</div>
+        <div class="station-code">${s.code}</div>
+        <div style="font-size:12px; margin-top:8px; color:var(--text-muted);">${s.operations?.length || 0} Operations Configured</div>
+      `;
+      container.appendChild(btn);
+    });
+  }
+
+  function showOperationsPanel(id) {
+    localActiveStationId = id;
+    document.getElementById('panelMainStations').classList.add('hidden');
+    document.getElementById('panelOperations').classList.remove('hidden');
+
+    const target = workingStations.find(s => s.id === id);
+    document.getElementById('lblActiveStationTitle').textContent = `${target.name} - Process Steps`;
+    renderOperations();
+  }
+
+  function renderOperations() {
+    const opContainer = document.getElementById('operationListContainer');
+    opContainer.innerHTML = '';
+    const target = workingStations.find(s => s.id === localActiveStationId);
+
+    if (!target.operations || target.operations.length === 0) {
+      opContainer.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding: 20px; text-align: center; background: #f8fafc; border-radius: 6px;">No operations added yet. Add your first operation using the form on the right.</div>';
+      return;
+    }
+
+    target.operations.forEach((op, index) => {
+      const d = document.createElement('div');
+      d.className = 'operation-row';
+      d.innerHTML = `
+        <div class="operation-info">
+          <div class="operation-name">${op.code}</div>
+          <div class="operation-desc">${op.description}</div>
+        </div>
+        <button class="delete-btn" onclick="deleteOperation(${index})">🗑️ Delete</button>
+      `;
+      opContainer.appendChild(d);
+    });
+  }
+
+  function deleteOperation(index) {
+    if (confirm('Are you sure you want to delete this operation?')) {
+      const target = workingStations.find(s => s.id === localActiveStationId);
+      target.operations.splice(index, 1);
+      localStorage.setItem('ather_infrastructure', JSON.stringify(workingStations));
+      renderOperations();
+      showToast('✅ Operation deleted successfully!');
+    }
+  }
+
+  document.getElementById('btnSaveStation').onclick = () => {
+    const name = document.getElementById('addName').value.trim();
+    const code = document.getElementById('addCode').value.trim().toUpperCase();
+    if (!name || !code) {
+      showToast('⚠️ Please provide both station name and code.', 'warning');
+      return;
+    }
+
+    if (workingStations.find(s => s.code === code)) {
+      showToast('⚠️ Station code already exists!', 'error');
+      return;
+    }
+
+    workingStations.push({ id: code, name, code: code, operations: [] });
+    localStorage.setItem('ather_infrastructure', JSON.stringify(workingStations));
+
+    document.getElementById('addName').value = '';
+    document.getElementById('addCode').value = '';
+    renderMasterStations();
+    showToast('✅ Station added successfully!');
+  };
+
+  document.getElementById('btnSaveOperation').onclick = () => {
+    const code = document.getElementById('opCode').value.trim().toUpperCase();
+    const desc = document.getElementById('opDesc').value.trim();
+    if (!code || !desc) {
+      showToast('⚠️ Please provide both operation code and description.', 'warning');
+      return;
+    }
+
+    const target = workingStations.find(s => s.id === localActiveStationId);
+    if (!target.operations) target.operations = [];
+    
+    if (target.operations.find(op => op.code === code)) {
+      showToast('⚠️ Operation code already exists for this station!', 'error');
+      return;
+    }
+
+    target.operations.push({ code, description: desc });
+
+    localStorage.setItem('ather_infrastructure', JSON.stringify(workingStations));
+    document.getElementById('opCode').value = '';
+    document.getElementById('opDesc').value = '';
+    renderOperations();
+    showToast('✅ Operation added successfully!');
+  };
+
+  document.getElementById('btnBackToMain').onclick = () => {
+    document.getElementById('panelOperations').classList.add('hidden');
+    document.getElementById('panelMainStations').classList.remove('hidden');
+    renderMasterStations();
+  };
+
+  // Toast notification function
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px 20px;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      border-left: 4px solid ${type === 'success' ? '#16a34a' : type === 'error' ? '#dc2626' : '#f59e0b'};
+      z-index: 3000;
+      animation: slideInRight 0.3s ease;
+      max-width: 400px;
+      font-size: 14px;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.animation = 'slideOutRight 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  renderMasterStations();
+</script>
+
+<style>
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(100px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideOutRight {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(100px);
+    }
+  }
+</style>
+
+</body>
+</html>
