@@ -26,7 +26,7 @@ export default function App() {
   const [options, setOptions] = useState<GenerateOptions>({
     useOllama: false,
     ollamaModel: 'llama3.2',
-    includeMoveSteps: false,
+    includeMoveSteps: true,
     maxOpsPerStation: undefined,
   })
 
@@ -66,6 +66,29 @@ export default function App() {
     }
   }
 
+  async function loadDemoMpp() {
+    setBusy(true)
+    setError(null)
+    try {
+      const [mpp, lib] = await Promise.all([
+        fetch('/samples/demo-mpp-bop-boe.xlsx').then((r) => {
+          if (!r.ok) throw new Error('Demo MPP missing')
+          return r.blob()
+        }),
+        fetch('/samples/failure-mode-library.xlsx').then((r) => r.blob()),
+      ])
+      setMppFile(new File([mpp], 'demo-mpp-bop-boe.xlsx'))
+      setBopFile(null)
+      setBoeFile(null)
+      setCombinedFile(null)
+      await onLibraryChange(new File([lib], 'failure-mode-library.xlsx'))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load demo MPP')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function loadDemoPdfs() {
     setBusy(true)
     setError(null)
@@ -75,14 +98,11 @@ export default function App() {
         fetch('/samples/sample-boe.pdf').then((r) => r.blob()),
         fetch('/samples/failure-mode-library.xlsx').then((r) => r.blob()),
       ])
-      const bopF = new File([bop], 'sample-bop.pdf', { type: 'application/pdf' })
-      const boeF = new File([boe], 'sample-boe.pdf', { type: 'application/pdf' })
-      const libF = new File([lib], 'failure-mode-library.xlsx')
-      setBopFile(bopF)
-      setBoeFile(boeF)
+      setBopFile(new File([bop], 'sample-bop.pdf', { type: 'application/pdf' }))
+      setBoeFile(new File([boe], 'sample-boe.pdf', { type: 'application/pdf' }))
       setCombinedFile(null)
       setMppFile(null)
-      await onLibraryChange(libF)
+      await onLibraryChange(new File([lib], 'failure-mode-library.xlsx'))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load demo samples')
     } finally {
@@ -131,8 +151,10 @@ export default function App() {
     downloadBlob(blob, `PFMEA-${plan.line.name.replace(/\s+/g, '-')}.xlsx`)
   }
 
-  const canGenerate =
-    !!mppFile || !!combinedFile || !!bopFile || !!boeFile
+  const canGenerate = !!mppFile || !!combinedFile || !!bopFile || !!boeFile
+  const totalOps = plan
+    ? plan.line.stations.reduce((n, s) => n + s.operations.length, 0)
+    : 0
 
   return (
     <div className="app-shell">
@@ -141,14 +163,13 @@ export default function App() {
           PFMEA <span>Generator</span>
         </h1>
         <p className="lede">
-          Upload BOP/BOE PDFs and your failure-mode library Excel. The app maps process steps,
-          matches the library (optional Ollama assist), then lets you edit and export a PFMEA
-          workbook. PFD is skipped — BOP/BOE feed the generator directly so the same core can later
-          take MPP API data.
+          Upload your full Teamcenter MPP BOP/BOE Excel sheet (or BOP/BOE PDFs). The app maps every
+          station and operation, matches your failure-mode library, generates the full PFMEA, then
+          lets you edit and export. PFD is skipped — same core later plugs into MPP API.
         </p>
         <div className="flow">
           <div className={`flow-step ${step === 'upload' ? 'active' : ''}`}>
-            <span className="n">01</span> Upload PDFs + library
+            <span className="n">01</span> Upload BOP/BOE + library
           </div>
           <div className={`flow-step ${step === 'review' ? 'active' : ''}`}>
             <span className="n">02</span> Review / edit PFMEA
@@ -163,60 +184,37 @@ export default function App() {
         <aside className="panel">
           <div className="panel-h">
             <h2>Inputs</h2>
-            <span className="meta">PDF primary</span>
+            <span className="meta">Full sheet → all ops</span>
           </div>
           <div className="panel-b stack">
             <div className="btn-row">
-              <button type="button" className="secondary" onClick={loadDemoPdfs} disabled={busy}>
-                Load demo PDFs + library
+              <button type="button" className="primary" onClick={loadDemoMpp} disabled={busy}>
+                Load demo MPP sheet + library
+              </button>
+              <button type="button" className="ghost" onClick={loadDemoPdfs} disabled={busy}>
+                Or demo PDFs
               </button>
             </div>
 
             <label className="field">
-              BOP PDF
+              MPP BOP/BOE Excel (recommended)
               <div className="drop">
-                <strong>Bill of Process</strong>
-                <span>Stations + OP: lines (digital PDF)</span>
+                <strong>Teamcenter export — entire sheet</strong>
+                <span>.xlsx / .xlsm with stations, operations, equipment, parts</span>
                 <input
                   type="file"
-                  accept="application/pdf,.pdf"
-                  onChange={(e) => setBopFile(e.target.files?.[0] || null)}
-                />
-                {bopFile && <span className="pill ok">{bopFile.name}</span>}
-              </div>
-            </label>
-
-            <label className="field">
-              BOE PDF
-              <div className="drop">
-                <strong>Bill of Equipment</strong>
-                <span>Stations + EQUIPMENT: lines</span>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  onChange={(e) => setBoeFile(e.target.files?.[0] || null)}
-                />
-                {boeFile && <span className="pill ok">{boeFile.name}</span>}
-              </div>
-            </label>
-
-            <label className="field">
-              Or combined BOP+BOE PDF
-              <div className="drop">
-                <strong>Single PDF</strong>
-                <span>Optional if BOP and BOE ship together</span>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
+                  accept=".xlsx,.xlsm,.xls"
                   onChange={(e) => {
-                    setCombinedFile(e.target.files?.[0] || null)
-                    if (e.target.files?.[0]) {
+                    const f = e.target.files?.[0] || null
+                    setMppFile(f)
+                    if (f) {
                       setBopFile(null)
                       setBoeFile(null)
+                      setCombinedFile(null)
                     }
                   }}
                 />
-                {combinedFile && <span className="pill ok">{combinedFile.name}</span>}
+                {mppFile && <span className="pill ok">{mppFile.name}</span>}
               </div>
             </label>
 
@@ -235,27 +233,64 @@ export default function App() {
             </label>
 
             <details>
-              <summary className="note">Alternate: Teamcenter MPP Excel (BOP+BOE)</summary>
-              <label className="field" style={{ marginTop: 10 }}>
-                MPP .xlsx / .xlsm
-                <input
-                  type="file"
-                  accept=".xlsx,.xlsm,.xls"
-                  onChange={(e) => {
-                    setMppFile(e.target.files?.[0] || null)
-                    if (e.target.files?.[0]) {
-                      setBopFile(null)
-                      setBoeFile(null)
-                      setCombinedFile(null)
-                    }
-                  }}
-                />
-                {mppFile && <span className="pill ok">{mppFile.name}</span>}
-              </label>
-              <p className="note">Same generator core via Excel adapter — useful for live Teamcenter exports.</p>
+              <summary className="note">Optional: BOP / BOE PDFs instead</summary>
+              <div className="stack" style={{ marginTop: 10 }}>
+                <label className="field">
+                  BOP PDF
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(e) => {
+                      setBopFile(e.target.files?.[0] || null)
+                      setMppFile(null)
+                    }}
+                  />
+                  {bopFile && <span className="pill ok">{bopFile.name}</span>}
+                </label>
+                <label className="field">
+                  BOE PDF
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(e) => {
+                      setBoeFile(e.target.files?.[0] || null)
+                      setMppFile(null)
+                    }}
+                  />
+                  {boeFile && <span className="pill ok">{boeFile.name}</span>}
+                </label>
+                <label className="field">
+                  Combined BOP+BOE PDF
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(e) => {
+                      setCombinedFile(e.target.files?.[0] || null)
+                      if (e.target.files?.[0]) {
+                        setBopFile(null)
+                        setBoeFile(null)
+                        setMppFile(null)
+                      }
+                    }}
+                  />
+                  {combinedFile && <span className="pill ok">{combinedFile.name}</span>}
+                </label>
+                <p className="note">
+                  Digital text PDFs only. Scanned/image PDFs need OCR first.
+                </p>
+              </div>
             </details>
 
             <div className="stack">
+              <div className="toggle">
+                <input
+                  id="moves"
+                  type="checkbox"
+                  checked={options.includeMoveSteps}
+                  onChange={(e) => setOptions((o) => ({ ...o, includeMoveSteps: e.target.checked }))}
+                />
+                <label htmlFor="moves">Generate all ops (include move / transfer)</label>
+              </div>
               <div className="toggle">
                 <input
                   id="ollama"
@@ -286,15 +321,6 @@ export default function App() {
                   </select>
                 </label>
               )}
-              <div className="toggle">
-                <input
-                  id="moves"
-                  type="checkbox"
-                  checked={options.includeMoveSteps}
-                  onChange={(e) => setOptions((o) => ({ ...o, includeMoveSteps: e.target.checked }))}
-                />
-                <label htmlFor="moves">Include move / transfer ops</label>
-              </div>
             </div>
 
             {error && <p className="note warn">{error}</p>}
@@ -306,7 +332,7 @@ export default function App() {
                 disabled={!canGenerate || busy}
                 onClick={parseAndGenerate}
               >
-                {busy ? 'Generating…' : 'Generate PFMEA'}
+                {busy ? 'Generating all…' : 'Generate full PFMEA'}
               </button>
               {step === 'review' && (
                 <button type="button" className="secondary" onClick={() => setStep('upload')}>
@@ -315,8 +341,8 @@ export default function App() {
               )}
             </div>
             <p className="note">
-              Scanned/image-only PDFs have no text layer — OCR them first, or use the digital sample
-              PDFs under <code>/samples</code>.
+              Drop your MPP BOP&amp;BOE report sheet, keep “Generate all ops” on, then generate —
+              every station/operation gets PFMEA rows from the library.
             </p>
           </div>
         </aside>
@@ -329,19 +355,19 @@ export default function App() {
               </div>
               <div className="panel-b stack">
                 <p className="note">
-                  1. Parse BOP/BOE PDFs into stations and operations (adapter layer).
+                  1. Upload the full MPP BOP/BOE Excel (Teamcenter export) — stations, ops, machines,
+                  parts in one sheet.
                   <br />
-                  2. Classify each op (torquing, press, load, …) and match your Excel library.
+                  2. Optionally upload your failure-mode library (or use the built-in sample).
                   <br />
-                  3. Optionally enrich with local Ollama. Edit rows, then export PFMEA Excel.
+                  3. Generate creates PFMEA rows for <strong>all</strong> operations, then you edit
+                  and export Excel.
                   <br />
-                  4. Later: swap the PDF adapter for Teamcenter/MPP API — core generator unchanged.
+                  4. Later: same generator takes live MPP API without rewriting core logic.
                 </p>
                 <p className="note">
-                  Templates:{' '}
-                  <a href="/samples/sample-bop.pdf">sample-bop.pdf</a>
-                  {' · '}
-                  <a href="/samples/sample-boe.pdf">sample-boe.pdf</a>
+                  Demo sheet:{' '}
+                  <a href="/samples/demo-mpp-bop-boe.xlsx">demo-mpp-bop-boe.xlsx</a>
                   {' · '}
                   <a href="/samples/failure-mode-library.xlsx">library.xlsx</a>
                   {' · '}
@@ -364,9 +390,7 @@ export default function App() {
                     <div className="k">Stations</div>
                   </div>
                   <div className="stat">
-                    <div className="v">
-                      {plan.line.stations.reduce((n, s) => n + s.operations.length, 0)}
-                    </div>
+                    <div className="v">{totalOps}</div>
                     <div className="k">Operations</div>
                   </div>
                   <div className="stat">
@@ -403,21 +427,19 @@ export default function App() {
                 </div>
 
                 {step === 'review' && (
-                  <>
-                    <div className="btn-row">
-                      <button type="button" className="primary" onClick={onExport}>
-                        Export PFMEA Excel
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={parseAndGenerate}
-                        disabled={busy}
-                      >
-                        Regenerate
-                      </button>
-                    </div>
-                  </>
+                  <div className="btn-row">
+                    <button type="button" className="primary" onClick={onExport}>
+                      Export PFMEA Excel
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={parseAndGenerate}
+                      disabled={busy}
+                    >
+                      Regenerate
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -558,10 +580,9 @@ export default function App() {
       </div>
 
       <div className="footer-note">
-        Architecture: <code>ProcessInputAdapter</code> (PDF today, MPP Excel optional, API later) →
-        canonical <code>ProcessPlan</code> → library/Ollama generator → editable PFMEA → Excel
-        export. Control Plan / WI generation stubbed for a later phase. Change-management diffs hook
-        lives in <code>src/core/changeManagement.ts</code>.
+        Upload your full MPP BOP/BOE sheet → generate all stations/ops → edit → export. Adapters:{' '}
+        <code>MPP Excel</code> / <code>PDF</code> / future <code>API</code> → same{' '}
+        <code>ProcessPlan</code> generator.
       </div>
     </div>
   )
