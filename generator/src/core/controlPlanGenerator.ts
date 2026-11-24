@@ -112,7 +112,7 @@ export function generateControlPlan(
         equipment,
         slNo: sl++,
         productCharacteristic: parts || '',
-        processCharacteristic: requirementFromOperation(op.name, processType),
+        processCharacteristic: requirementFromOperation(op.name),
         specialClass: pfmeaHint?.classification || d.specialClass,
         specification: d.specification,
         evaluationMethod: d.evaluation,

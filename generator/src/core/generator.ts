@@ -27,9 +27,11 @@ function suggestionsFrom(entry: LibraryEntry): PfmeaSuggestions {
 }
 
 /**
- * Guided PFMEA skeleton from BOP stations/ops:
- * AUTO — sequence, description, S No, requirement, process type, failure mode
- * MANUAL (blank) — effect, SEV/OCC/DET, cause, controls, actions (library values kept as suggestions only)
+ * Guided PFMEA from BOP:
+ * - Requirement = BOP process characteristic / operation text (as on the sheet)
+ * - Process type = expertise classifier (optional local Ollama override)
+ * - Failure modes = all library modes for that process type (auto)
+ * - Effect / SEV / OCC / DET / cause / controls = blank + suggestions only
  */
 export async function generatePfmea(ctx: GenerateContext): Promise<{
   rows: PfmeaRow[]

@@ -223,10 +223,10 @@ export default function App() {
           PFMEA <span>Generator</span>
         </h1>
         <p className="lede">
-          Guided flow: extract <strong>stations from BOP</strong> → auto-fill sequence-wise{' '}
-          <strong>requirements</strong>, <strong>process type</strong>, and{' '}
-          <strong>failure modes</strong> → you complete effects, ratings, and controls manually
-          (library offers suggestions only).
+          BOP characteristics become PFMEA <strong>requirements</strong>. Expertise maps each to a{' '}
+          <strong>process type</strong>; that type brings its library of{' '}
+          <strong>failure modes</strong>. Effects, ratings, and controls stay manual — suggestions
+          only.
         </p>
         <div className="flow">
           <div className={`flow-step ${step === 'upload' ? 'active' : ''}`}>
@@ -386,11 +386,15 @@ export default function App() {
 
             <div className="legend stack">
               <p className="note">
-                <strong>Auto:</strong> Seq, Operation, Requirement, Process type, Failure mode
+                <strong>Requirement</strong> = BOP step/characteristic text (e.g. “SECURE TORQUE
+                GUN TIGHTEN BOLT…”).
               </p>
               <p className="note">
-                <strong>Manual:</strong> Effect, SEV/OCC/DET, Cause, Controls, Actions — use
-                “Apply suggestion” if helpful
+                <strong>Auto:</strong> Seq · Requirement · Process type · Failure modes (all for
+                that type)
+              </p>
+              <p className="note">
+                <strong>Manual + suggestions:</strong> Effect, SEV/OCC/DET, Cause, Controls, Actions
               </p>
             </div>
           </div>
@@ -404,13 +408,14 @@ export default function App() {
               </div>
               <div className="panel-b stack">
                 <p className="note">
-                  1. Parse BOP → list every station and operation.
+                  1. Extract stations/ops from BOP (machines & parts stay on the process map, not as
+                  requirements).
                   <br />
-                  2. For each op, auto-populate the sequence-wise <em>requirement</em>, classify{' '}
-                  <em>process type</em>, and pull <em>potential failure modes</em> from your library
-                  (optional local Ollama).
+                  2. Each BOP characteristic is the PFMEA <em>requirement</em>; expertise assigns a{' '}
+                  <em>process type</em>; the library attaches <em>all failure modes</em> for that
+                  type.
                   <br />
-                  3. Everything else stays blank for you — library values show only as suggestions.
+                  3. You fill effects, SEV/OCC/DET, causes, and controls — suggestions are optional.
                 </p>
               </div>
             </>

@@ -1,51 +1,101 @@
 import type { ProcessType } from './types'
 
+/**
+ * Expertise-based process-type mapping from BOP operation / characteristic text.
+ * Requirement in PFMEA = the BOP characteristic itself; this only chooses the type.
+ */
 const RULES: { type: ProcessType; patterns: RegExp[] }[] = [
   {
     type: 'Torquing & Fastening',
-    patterns: [/torqu/i, /tighten/i, /bolt/i, /fasten/i, /nut\b/i, /screw/i],
+    patterns: [
+      /torqu/i,
+      /tighten/i,
+      /re-torqu/i,
+      /pre-?thread/i,
+      /pre-?fit.*bolt/i,
+      /secure torque gun/i,
+      /nut\b.*bolt|bolt\b.*nut/i,
+      /torque mark/i,
+    ],
   },
   {
     type: 'Press Fit',
-    patterns: [/press/i, /bearing/i, /oil seal/i, /seal press/i, /cylinder press/i],
-  },
-  {
-    type: 'Oil / Lubrication',
-    patterns: [/apply oil/i, /oil brush/i, /lubric/i, /grease/i],
+    patterns: [
+      /cylinder presses/i,
+      /press(?:es|ing|-fit)?/i,
+      /pressing mandrel/i,
+      /press-fit/i,
+      /bearing.*insert|insert.*bearing/i,
+      /oil seal|shaft seal|radial shaft seal/i,
+    ],
   },
   {
     type: 'Oil Fill',
-    patterns: [/oil fill/i, /filling/i, /drain plug/i],
+    patterns: [/oil fill/i, /oil filling/i],
+  },
+  {
+    type: 'Oil / Lubrication',
+    patterns: [/apply oil/i, /oil brush/i, /apply.*grease/i, /grease/i, /lubric/i],
   },
   {
     type: 'Leak Test',
-    patterns: [/leak/i],
+    patterns: [/leak test/i, /\bleak\b/i],
   },
   {
     type: 'Inspection / Test',
-    patterns: [/test/i, /inspect/i, /backlash/i, /nvh/i, /check/i, /measure/i],
+    patterns: [/backlash/i, /nvh/i, /visual inspection/i, /inspect/i, /\btest(?:ing|er)?\b/i],
   },
   {
     type: 'Scanning / Traceability',
-    patterns: [/scan/i, /qr\b/i, /barcode/i, /mes\b/i],
-  },
-  {
-    type: 'Handling / Transfer',
-    patterns: [/movement of/i, /transfer/i, /move\b/i, /lift/i, /wpc/i, /pallet/i, /push button/i, /unload/i],
+    patterns: [/scan(?:ner|ning)?/i, /qr\b/i, /barcode/i, /\bmes\b/i],
   },
   {
     type: 'Loading / Placement',
-    patterns: [/pick\b/i, /place\b/i, /load/i, /align/i, /orient/i],
+    patterns: [
+      /pick .+ (?:and )?(?:place|align|seat|position)/i,
+      /place .+ (?:on|onto|into)/i,
+      /position .+ (?:onto|on|into|with alignment)/i,
+      /align and (?:place|seat)/i,
+      /within reach align and place/i,
+    ],
   },
   {
     type: 'Assembly / Insertion',
-    patterns: [/assembl/i, /insert/i, /gasket/i, /dowel/i, /pre-assembl/i, /obtain\b/i, /closing/i],
+    patterns: [
+      /assembl/i,
+      /insert/i,
+      /gasket/i,
+      /dowel/i,
+      /pre-assembl/i,
+      /obtain .+(?:and |& )?(?:insert|seat|align|place|pre-)/i,
+      /closing/i,
+      /coupling/i,
+      /o-?ring/i,
+      /breather/i,
+      /lock .+ cables/i,
+    ],
+  },
+  {
+    type: 'Handling / Transfer',
+    patterns: [
+      /movement of/i,
+      /transfer/i,
+      /move .+ from/i,
+      /wpc (?:is )?(?:lifted|released|moves)/i,
+      /lift(?:s|ed)? the wpc/i,
+      /release wpc/i,
+      /return(?:s)? to the home position/i,
+      /cylinder (?:lifts|moves|releases)/i,
+      /horizontal (?:support )?block moves/i,
+      /push button/i,
+      /walk two steps/i,
+      /trolley/i,
+      /unload/i,
+    ],
   },
 ]
 
 export function classifyProcessType(operationName: string, stationName = ''): ProcessType {
-  // Prefer the operation wording so station names (e.g. "OIL BOLT ASSEMBLY")
-  // do not override clear loading / scan / move steps.
   for (const rule of RULES) {
     if (rule.patterns.some((p) => p.test(operationName))) return rule.type
   }
@@ -56,35 +106,15 @@ export function classifyProcessType(operationName: string, stationName = ''): Pr
 }
 
 export function isLikelyMoveOnly(operationName: string): boolean {
-  return /movement of|move .+ from|transfer .+ from|depress push button|actuate push button|cycle completion/i.test(
-    operationName,
+  return /^(movement of|move .+ from|transfer .+ from|depress push button|actuate push button|tap push button|wpc (is )?(automatically )?lifted|wpc moves down|return to the home position|return home position)/i.test(
+    operationName.trim(),
   )
 }
 
-export function requirementFromOperation(opName: string, processType: ProcessType): string {
-  const clean = opName.replace(/\.$/, '').trim()
-  switch (processType) {
-    case 'Torquing & Fastening':
-      return `Correct torque / fastening: ${clean}`
-    case 'Press Fit':
-      return `Correct press fit / seating: ${clean}`
-    case 'Oil / Lubrication':
-      return `Correct oil / lubricant application: ${clean}`
-    case 'Scanning / Traceability':
-      return `Correct part identification / scan: ${clean}`
-    case 'Leak Test':
-      return `Leak test within specification: ${clean}`
-    case 'Inspection / Test':
-      return `Inspection / test within specification: ${clean}`
-    case 'Oil Fill':
-      return `Correct oil fill quantity: ${clean}`
-    case 'Loading / Placement':
-      return `Correct loading / orientation: ${clean}`
-    case 'Assembly / Insertion':
-      return `Correct assembly / insertion: ${clean}`
-    case 'Handling / Transfer':
-      return `Correct handling without damage: ${clean}`
-    default:
-      return `Process requirement: ${clean}`
-  }
+/**
+ * PFMEA Requirement = BOP process characteristic / operation text (as on the sheet).
+ * Do not rephrase — analysts own wording; process type is separate.
+ */
+export function requirementFromOperation(opName: string, _processType?: ProcessType): string {
+  return opName.replace(/\.$/, '').trim()
 }

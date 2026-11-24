@@ -86,6 +86,10 @@ export function getDefaultLibrary(): LibraryEntry[] {
   return SAMPLE_LIBRARY.map((e) => ({ ...e }))
 }
 
+/**
+ * All failure modes for a process type (requirements: each type has multiple FMs).
+ * Keyword score only used to order suggestions, not to drop modes.
+ */
 export function matchLibrary(
   library: LibraryEntry[],
   processType: string,
@@ -94,17 +98,16 @@ export function matchLibrary(
   const byType = library.filter(
     (e) => e.processType.toLowerCase() === processType.toLowerCase(),
   )
-  const pool = byType.length ? byType : library.filter((e) => e.processType === 'General Process')
-  const text = operationName.toLowerCase()
-  const scored = pool
-    .map((e) => {
-      const keys = (e.keywords || `${e.failureMode} ${e.requirementHint || ''}`).toLowerCase()
-      const hits = keys.split(/\s+/).filter((k) => k.length > 2 && text.includes(k)).length
-      return { e, hits }
-    })
-    .sort((a, b) => b.hits - a.hits)
+  const pool = byType.length
+    ? byType
+    : library.filter((e) => e.processType === 'General Process')
 
-  const top = scored.filter((s) => s.hits > 0).slice(0, 4).map((s) => s.e)
-  if (top.length) return top
-  return pool.slice(0, 3)
+  const text = operationName.toLowerCase()
+  return [...pool].sort((a, b) => {
+    const score = (e: LibraryEntry) => {
+      const keys = (e.keywords || `${e.failureMode} ${e.requirementHint || ''}`).toLowerCase()
+      return keys.split(/\s+/).filter((k) => k.length > 2 && text.includes(k)).length
+    }
+    return score(b) - score(a)
+  })
 }
