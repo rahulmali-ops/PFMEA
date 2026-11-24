@@ -1,0 +1,467 @@
+.app-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.hero {
+  display: grid;
+  gap: 18px;
+  padding: 28px 28px 24px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(251, 250, 247, 0.95), rgba(232, 228, 219, 0.9)),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 10px,
+      rgba(15, 122, 95, 0.03) 10px,
+      rgba(15, 122, 95, 0.03) 11px
+    );
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 220px;
+  height: 220px;
+  border: 28px solid rgba(15, 122, 95, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.brand {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.brand span {
+  color: var(--accent);
+}
+
+.lede {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+}
+
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.flow-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.flow-step.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.flow-step .n {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+@media (min-width: 980px) {
+  .layout {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.panel-h {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #f7f5f0, #f0ece3);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.panel-h h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.panel-h .meta {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.panel-b {
+  padding: 16px;
+}
+
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
+label.field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.field input[type='text'],
+.field input[type='number'],
+.field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 10px 12px;
+  color: var(--ink);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid rgba(15, 122, 95, 0.35);
+  border-color: var(--accent);
+}
+
+.drop {
+  border: 1.5px dashed #b7b0a1;
+  background: #f7f5f0;
+  padding: 18px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.drop:hover,
+.drop.drag {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.drop strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.drop span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.drop input {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button.primary,
+button.secondary,
+button.ghost,
+a.btn {
+  border: 1px solid transparent;
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-deep);
+}
+
+button.primary:hover {
+  background: var(--accent-deep);
+}
+
+button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+button.secondary:hover {
+  border-color: var(--accent);
+}
+
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent-deep);
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.note {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.note.warn {
+  color: var(--warn);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.pill.ok {
+  border-color: #86efac;
+  background: var(--low);
+  color: #065f46;
+}
+
+.pill.bad {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.station-list {
+  display: grid;
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.station-item {
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.station-item strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.station-item small {
+  color: var(--muted);
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.72rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stat {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 12px;
+}
+
+.stat .v {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.stat .k {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-wrap {
+  overflow: auto;
+  max-height: min(70vh, 720px);
+  border-top: 1px solid var(--line);
+}
+
+table.pfmea {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  min-width: 1400px;
+}
+
+table.pfmea th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #1a222c;
+  color: #f8fafc;
+  text-align: left;
+  padding: 8px 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+table.pfmea td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 6px;
+  vertical-align: top;
+  background: #fff;
+}
+
+table.pfmea tr:nth-child(even) td {
+  background: #faf9f6;
+}
+
+table.pfmea input,
+table.pfmea textarea {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px;
+  resize: vertical;
+  min-width: 70px;
+}
+
+table.pfmea input:focus,
+table.pfmea textarea:focus {
+  border-color: var(--accent);
+  background: #fff;
+  outline: none;
+}
+
+table.pfmea .num {
+  width: 52px;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  text-align: center;
+}
+
+.ap {
+  display: inline-block;
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  padding: 2px 6px;
+}
+
+.ap.H {
+  background: var(--high);
+}
+.ap.M {
+  background: var(--med);
+}
+.ap.L {
+  background: var(--low);
+}
+
+.src {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.footer-note {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: rgba(251, 250, 247, 0.8);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.footer-note code {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.8rem;
+  background: var(--paper-2);
+  padding: 1px 5px;
+}
+
+.op-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  max-height: 140px;
+  overflow: auto;
+}
+
+.suggest {
+  display: grid;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.suggest-peek {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.legend {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+table.pfmea textarea::placeholder,
+table.pfmea input::placeholder {
+  color: #a8a29a;
+  font-style: italic;
+}
