@@ -36,7 +36,7 @@
 }
 
 .brand {
-  font-family: 'IBM Plex Serif', Georgia, serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: clamp(1.8rem, 3vw, 2.4rem);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -81,7 +81,7 @@
 }
 
 .flow-step .n {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.75rem;
   opacity: 0.8;
 }
@@ -124,7 +124,7 @@
 }
 
 .panel-h .meta {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.72rem;
   color: var(--muted);
 }
@@ -266,7 +266,7 @@ button.ghost {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.72rem;
   padding: 4px 8px;
   border: 1px solid var(--line);
@@ -305,7 +305,7 @@ button.ghost {
 
 .station-item small {
   color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.72rem;
 }
 
@@ -322,7 +322,7 @@ button.ghost {
 }
 
 .stat .v {
-  font-family: 'IBM Plex Serif', Georgia, serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 1.4rem;
   font-weight: 600;
 }
@@ -389,7 +389,7 @@ table.pfmea textarea:focus {
 
 table.pfmea .num {
   width: 52px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   text-align: center;
 }
 
@@ -398,7 +398,7 @@ table.pfmea .num {
   min-width: 22px;
   text-align: center;
   font-weight: 700;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   padding: 2px 6px;
 }
 
@@ -413,7 +413,7 @@ table.pfmea .num {
 }
 
 .src {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.68rem;
   color: var(--muted);
 }
@@ -428,7 +428,7 @@ table.pfmea .num {
 }
 
 .footer-note code {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.8rem;
   background: var(--paper-2);
   padding: 1px 5px;

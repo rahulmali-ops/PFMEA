@@ -1,18 +1,64 @@
 import type { LibraryEntry, ProcessType } from '../core/types'
 
+/** Local Ollama only — never via the published app's API. */
+const LOCAL_OLLAMA = 'http://127.0.0.1:11434'
+
 export interface OllamaStatus {
   available: boolean
   baseUrl?: string
   models?: string[]
   error?: string
+  mode?: string
+}
+
+async function localGenerate(opts: {
+  model: string
+  prompt: string
+  system?: string
+  format?: string
+}): Promise<string | null> {
+  const r = await fetch(`${LOCAL_OLLAMA}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: opts.model,
+      prompt: opts.prompt,
+      system: opts.system,
+      stream: false,
+      format: opts.format,
+    }),
+    signal: AbortSignal.timeout(90_000),
+  })
+  if (!r.ok) return null
+  const data = (await r.json()) as { response?: string }
+  return data.response || null
 }
 
 export async function fetchOllamaStatus(): Promise<OllamaStatus> {
   try {
-    const r = await fetch('/api/ollama/status')
-    return (await r.json()) as OllamaStatus
+    const r = await fetch(`${LOCAL_OLLAMA}/api/tags`, { signal: AbortSignal.timeout(2500) })
+    if (!r.ok) {
+      return {
+        available: false,
+        mode: 'localhost-only',
+        error: `Local Ollama HTTP ${r.status}`,
+      }
+    }
+    const data = (await r.json()) as { models?: { name: string }[] }
+    return {
+      available: true,
+      mode: 'localhost-only',
+      models: (data.models || []).map((m) => m.name),
+    }
   } catch (err) {
-    return { available: false, error: err instanceof Error ? err.message : 'API unreachable' }
+    return {
+      available: false,
+      mode: 'localhost-only',
+      error:
+        err instanceof Error
+          ? `${err.message} — start \`ollama serve\` on this machine (set OLLAMA_ORIGINS for the app origin)`
+          : 'Local Ollama unreachable',
+    }
   }
 }
 
@@ -32,14 +78,9 @@ Loading / Placement, Torquing & Fastening, Press Fit, Oil / Lubrication, Scannin
 Return JSON: {"processType":"..."}`
 
   try {
-    const r = await fetch('/api/ollama/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt, system, format: 'json' }),
-    })
-    if (!r.ok) return null
-    const data = (await r.json()) as { response?: string }
-    const parsed = JSON.parse(data.response || '{}') as { processType?: string }
+    const response = await localGenerate({ model, prompt, system, format: 'json' })
+    if (!response) return null
+    const parsed = JSON.parse(response) as { processType?: string }
     return (parsed.processType as ProcessType) || null
   } catch {
     return null
@@ -78,14 +119,9 @@ Return JSON:
 {"rows":[{"failureMode":"","failureEffect":"","severity":1-10,"cause":"","occurrence":1-10,"preventionControl":"","detectionControl":"","detection":1-10,"recommendedAction":"","classification":"-"}]}`
 
   try {
-    const r = await fetch('/api/ollama/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt, system, format: 'json' }),
-    })
-    if (!r.ok) return []
-    const data = (await r.json()) as { response?: string }
-    const parsed = JSON.parse(data.response || '{}') as { rows?: LibraryEntry[] }
+    const response = await localGenerate({ model, prompt, system, format: 'json' })
+    if (!response) return []
+    const parsed = JSON.parse(response) as { rows?: LibraryEntry[] }
     return (parsed.rows || []).map((row) => ({
       processType,
       failureMode: row.failureMode,

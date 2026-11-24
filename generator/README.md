@@ -21,15 +21,18 @@ npm run dev              # web :5173 + API :8787 (Ollama proxy)
 
 Open http://127.0.0.1:5173 → **Load demo PDFs + library** → **Generate PFMEA**.
 
-### Ollama (optional)
+### Ollama (optional, localhost only)
+
+The app talks to Ollama on **your machine** (`http://127.0.0.1:11434`). There is no server-side Ollama proxy.
 
 ```bash
+# allow the browser origin (adjust if needed)
+export OLLAMA_ORIGINS="http://127.0.0.1:5173,http://localhost:5173"
 ollama serve
 ollama pull llama3.2
-# optional: OLLAMA_BASE_URL=http://127.0.0.1:11434 OLLAMA_MODEL=llama3.2
 ```
 
-Enable **Use Ollama for AI assist** in the UI when the status pill is green.
+Enable **Use Ollama for AI assist** when the UI shows local Ollama ready.
 
 ## Sample files (`public/samples/`)
 

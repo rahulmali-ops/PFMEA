@@ -332,10 +332,14 @@ export default function App() {
                 <label htmlFor="ollama">Ollama AI assist for failure modes</label>
               </div>
               {ollama?.available ? (
-                <span className="pill ok">Ollama ready</span>
+                <span className="pill ok">Local Ollama · 127.0.0.1:11434</span>
               ) : (
-                <span className="pill bad">Ollama offline — library only</span>
+                <span className="pill bad">Local Ollama offline — library only</span>
               )}
+              <p className="note">
+                AI uses Ollama on <code>localhost</code> only (no server proxy). For browser access:
+                set <code>OLLAMA_ORIGINS</code> to your app origin, then <code>ollama serve</code>.
+              </p>
             </div>
 
             {error && <p className="note warn">{error}</p>}

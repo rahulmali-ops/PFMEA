@@ -15,7 +15,7 @@
   --med: #fde68a;
   --low: #d1fae5;
   --shadow: 0 12px 40px rgba(18, 24, 31, 0.08);
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-family: 'Segoe UI', 'Helvetica Neue', 'Noto Sans', sans-serif;
   line-height: 1.45;
   color: var(--ink);
   background: var(--paper);
