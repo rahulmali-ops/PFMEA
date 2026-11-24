@@ -1,25 +1,37 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { parseBopBoePdfs, parseMppExcelFile, type ProcessPlan } from './adapters'
-import { generatePfmea, recomputeRow } from './core/generator'
-import type { GenerateOptions, LibraryEntry, PfmeaRow } from './core/types'
-import { exportPfmeaWorkbook, downloadBlob } from './lib/exportPfmea'
+import { recomputeRow } from './core/generator'
+import { generateQualityPackage, logChange } from './core/qualityPackage'
+import type {
+  ChangeLogEntry,
+  ControlPlanRow,
+  GenerateOptions,
+  LibraryEntry,
+  PfmeaRow,
+  WorkInstruction,
+} from './core/types'
+import { downloadBlob, exportQualityPackage } from './lib/exportPackage'
 import { getDefaultLibrary, parseLibraryFile } from './lib/libraryExcel'
 import { fetchOllamaStatus, type OllamaStatus } from './lib/ollama'
 
 type Step = 'upload' | 'review'
+type Tab = 'pfmea' | 'cp' | 'wi' | 'changes'
 
 export default function App() {
   const [step, setStep] = useState<Step>('upload')
+  const [tab, setTab] = useState<Tab>('pfmea')
   const [bopFile, setBopFile] = useState<File | null>(null)
   const [boeFile, setBoeFile] = useState<File | null>(null)
   const [combinedFile, setCombinedFile] = useState<File | null>(null)
   const [mppFile, setMppFile] = useState<File | null>(null)
-  const [libraryFile, setLibraryFile] = useState<File | null>(null)
   const [library, setLibrary] = useState<LibraryEntry[]>(() => getDefaultLibrary())
-  const [libraryLabel, setLibraryLabel] = useState('Built-in sample library')
+  const [libraryLabel, setLibraryLabel] = useState('Built-in process-type library')
   const [plan, setPlan] = useState<ProcessPlan | null>(null)
   const [rows, setRows] = useState<PfmeaRow[]>([])
+  const [controlPlan, setControlPlan] = useState<ControlPlanRow[]>([])
+  const [workInstructions, setWorkInstructions] = useState<WorkInstruction[]>([])
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ollama, setOllama] = useState<OllamaStatus | null>(null)
@@ -28,13 +40,15 @@ export default function App() {
     ollamaModel: 'llama3.2',
     includeMoveSteps: true,
     maxOpsPerStation: undefined,
+    generateControlPlan: true,
+    generateWorkInstructions: true,
   })
 
   useEffect(() => {
     fetchOllamaStatus().then((s) => {
       setOllama(s)
       if (s.available && s.models?.length) {
-        setOptions((o) => ({ ...o, ollamaModel: s.models![0], useOllama: false }))
+        setOptions((o) => ({ ...o, ollamaModel: s.models![0] }))
       }
     })
   }, [])
@@ -50,10 +64,9 @@ export default function App() {
   }, [plan])
 
   async function onLibraryChange(file: File | null) {
-    setLibraryFile(file)
     if (!file) {
       setLibrary(getDefaultLibrary())
-      setLibraryLabel('Built-in sample library')
+      setLibraryLabel('Built-in process-type library')
       return
     }
     try {
@@ -89,48 +102,20 @@ export default function App() {
     }
   }
 
-  async function loadDemoPdfs() {
-    setBusy(true)
-    setError(null)
-    try {
-      const [bop, boe, lib] = await Promise.all([
-        fetch('/samples/sample-bop.pdf').then((r) => r.blob()),
-        fetch('/samples/sample-boe.pdf').then((r) => r.blob()),
-        fetch('/samples/failure-mode-library.xlsx').then((r) => r.blob()),
-      ])
-      setBopFile(new File([bop], 'sample-bop.pdf', { type: 'application/pdf' }))
-      setBoeFile(new File([boe], 'sample-boe.pdf', { type: 'application/pdf' }))
-      setCombinedFile(null)
-      setMppFile(null)
-      await onLibraryChange(new File([lib], 'failure-mode-library.xlsx'))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load demo samples')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   async function parseAndGenerate() {
     setBusy(true)
     setError(null)
     try {
-      let nextPlan: ProcessPlan
-      if (mppFile) {
-        nextPlan = await parseMppExcelFile(mppFile)
-      } else {
-        nextPlan = await parseBopBoePdfs({
-          bop: bopFile,
-          boe: boeFile,
-          combined: combinedFile,
-        })
-      }
+      const nextPlan = mppFile
+        ? await parseMppExcelFile(mppFile)
+        : await parseBopBoePdfs({ bop: bopFile, boe: boeFile, combined: combinedFile })
       setPlan(nextPlan)
-      const result = await generatePfmea({
-        plan: nextPlan,
-        library,
-        options,
-      })
-      setRows(result.rows)
+      const pkg = await generateQualityPackage({ plan: nextPlan, library, options })
+      setRows(pkg.pfmea)
+      setControlPlan(pkg.controlPlan)
+      setWorkInstructions(pkg.workInstructions)
+      setChangeLog([])
+      setTab('pfmea')
       setStep('review')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generate failed')
@@ -139,22 +124,58 @@ export default function App() {
     }
   }
 
-  function updateRow(id: string, patch: Partial<PfmeaRow>) {
+  function updatePfmea(id: string, field: keyof PfmeaRow, value: string | number) {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? recomputeRow({ ...r, ...patch, source: 'manual' }) : r)),
+      prev.map((r) => {
+        if (r.id !== id) return r
+        const before = String(r[field] ?? '')
+        const next = recomputeRow({ ...r, [field]: value, source: 'manual' })
+        setChangeLog((log) =>
+          logChange(log, {
+            who: 'analyst',
+            where: `PFMEA · ${r.operationSequence} · S${r.sNo}`,
+            field: String(field),
+            before,
+            after: String(value),
+          }),
+        )
+        return next
+      }),
+    )
+  }
+
+  function updateCp(id: string, field: keyof ControlPlanRow, value: string | number) {
+    setControlPlan((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r
+        setChangeLog((log) =>
+          logChange(log, {
+            who: 'analyst',
+            where: `CP · ${r.operationSequence} · #${r.slNo}`,
+            field: String(field),
+            before: String(r[field] ?? ''),
+            after: String(value),
+          }),
+        )
+        return { ...r, [field]: value }
+      }),
     )
   }
 
   async function onExport() {
     if (!plan) return
-    const blob = await exportPfmeaWorkbook(rows, plan)
-    downloadBlob(blob, `PFMEA-${plan.line.name.replace(/\s+/g, '-')}.xlsx`)
+    const blob = await exportQualityPackage({
+      plan,
+      pfmea: rows,
+      controlPlan,
+      workInstructions,
+      changeLog,
+    })
+    downloadBlob(blob, `QualityPackage-${plan.line.name.replace(/\s+/g, '-')}.xlsx`)
   }
 
   const canGenerate = !!mppFile || !!combinedFile || !!bopFile || !!boeFile
-  const totalOps = plan
-    ? plan.line.stations.reduce((n, s) => n + s.operations.length, 0)
-    : 0
+  const totalOps = plan ? plan.line.stations.reduce((n, s) => n + s.operations.length, 0) : 0
 
   return (
     <div className="app-shell">
@@ -163,19 +184,20 @@ export default function App() {
           PFMEA <span>Generator</span>
         </h1>
         <p className="lede">
-          Upload your full Teamcenter MPP BOP/BOE Excel sheet (or BOP/BOE PDFs). The app maps every
-          station and operation, matches your failure-mode library, generates the full PFMEA, then
-          lets you edit and export. PFD is skipped — same core later plugs into MPP API.
+          Phase 1A from requirements: upload full MPP BOP/BOE → generate{' '}
+          <strong>PFMEA + Control Plan + Work Instructions</strong> using the process-type failure
+          library (optional Ollama). Shared station sequence stays consistent; edit with a change
+          log; export the quality package Excel.
         </p>
         <div className="flow">
           <div className={`flow-step ${step === 'upload' ? 'active' : ''}`}>
             <span className="n">01</span> Upload BOP/BOE + library
           </div>
           <div className={`flow-step ${step === 'review' ? 'active' : ''}`}>
-            <span className="n">02</span> Review / edit PFMEA
+            <span className="n">02</span> Review PFMEA / CP / WI
           </div>
           <div className="flow-step">
-            <span className="n">03</span> Export Excel
+            <span className="n">03</span> Export package
           </div>
         </div>
       </header>
@@ -184,23 +206,20 @@ export default function App() {
         <aside className="panel">
           <div className="panel-h">
             <h2>Inputs</h2>
-            <span className="meta">Full sheet → all ops</span>
+            <span className="meta">MPP → PFMEA + CP + WI</span>
           </div>
           <div className="panel-b stack">
             <div className="btn-row">
               <button type="button" className="primary" onClick={loadDemoMpp} disabled={busy}>
-                Load demo MPP sheet + library
-              </button>
-              <button type="button" className="ghost" onClick={loadDemoPdfs} disabled={busy}>
-                Or demo PDFs
+                Load demo MPP + library
               </button>
             </div>
 
             <label className="field">
-              MPP BOP/BOE Excel (recommended)
+              MPP BOP/BOE Excel (full sheet)
               <div className="drop">
-                <strong>Teamcenter export — entire sheet</strong>
-                <span>.xlsx / .xlsm with stations, operations, equipment, parts</span>
+                <strong>Teamcenter BOP + BOE report</strong>
+                <span>Generate all stations / operations</span>
                 <input
                   type="file"
                   accept=".xlsx,.xlsm,.xls"
@@ -222,18 +241,17 @@ export default function App() {
               Failure-mode library (Excel)
               <div className="drop">
                 <strong>{libraryLabel}</strong>
-                <span>process_type → failure modes, SEV/OCC/DET, controls</span>
+                <span>Process type → standard failure modes (requirements § PFMEA Automation)</span>
                 <input
                   type="file"
                   accept=".xlsx,.xlsm,.xls"
                   onChange={(e) => onLibraryChange(e.target.files?.[0] || null)}
                 />
-                {libraryFile && <span className="pill ok">{libraryFile.name}</span>}
               </div>
             </label>
 
             <details>
-              <summary className="note">Optional: BOP / BOE PDFs instead</summary>
+              <summary className="note">Optional PDF BOP/BOE</summary>
               <div className="stack" style={{ marginTop: 10 }}>
                 <label className="field">
                   BOP PDF
@@ -245,7 +263,6 @@ export default function App() {
                       setMppFile(null)
                     }}
                   />
-                  {bopFile && <span className="pill ok">{bopFile.name}</span>}
                 </label>
                 <label className="field">
                   BOE PDF
@@ -257,27 +274,18 @@ export default function App() {
                       setMppFile(null)
                     }}
                   />
-                  {boeFile && <span className="pill ok">{boeFile.name}</span>}
                 </label>
                 <label className="field">
-                  Combined BOP+BOE PDF
+                  Combined PDF
                   <input
                     type="file"
                     accept="application/pdf,.pdf"
                     onChange={(e) => {
                       setCombinedFile(e.target.files?.[0] || null)
-                      if (e.target.files?.[0]) {
-                        setBopFile(null)
-                        setBoeFile(null)
-                        setMppFile(null)
-                      }
+                      if (e.target.files?.[0]) setMppFile(null)
                     }}
                   />
-                  {combinedFile && <span className="pill ok">{combinedFile.name}</span>}
                 </label>
-                <p className="note">
-                  Digital text PDFs only. Scanned/image PDFs need OCR first.
-                </p>
               </div>
             </details>
 
@@ -293,33 +301,40 @@ export default function App() {
               </div>
               <div className="toggle">
                 <input
+                  id="cp"
+                  type="checkbox"
+                  checked={options.generateControlPlan}
+                  onChange={(e) =>
+                    setOptions((o) => ({ ...o, generateControlPlan: e.target.checked }))
+                  }
+                />
+                <label htmlFor="cp">Generate Control Plan</label>
+              </div>
+              <div className="toggle">
+                <input
+                  id="wi"
+                  type="checkbox"
+                  checked={options.generateWorkInstructions}
+                  onChange={(e) =>
+                    setOptions((o) => ({ ...o, generateWorkInstructions: e.target.checked }))
+                  }
+                />
+                <label htmlFor="wi">Generate Work Instructions</label>
+              </div>
+              <div className="toggle">
+                <input
                   id="ollama"
                   type="checkbox"
                   checked={options.useOllama}
-                  onChange={(e) => setOptions((o) => ({ ...o, useOllama: e.target.checked }))}
                   disabled={!ollama?.available}
+                  onChange={(e) => setOptions((o) => ({ ...o, useOllama: e.target.checked }))}
                 />
-                <label htmlFor="ollama">Use Ollama for AI assist</label>
+                <label htmlFor="ollama">Ollama AI assist for failure modes</label>
               </div>
               {ollama?.available ? (
-                <span className="pill ok">Ollama · {(ollama.models || []).join(', ') || 'ready'}</span>
+                <span className="pill ok">Ollama ready</span>
               ) : (
-                <span className="pill bad">Ollama offline — library matching only</span>
-              )}
-              {options.useOllama && (
-                <label className="field">
-                  Model
-                  <select
-                    value={options.ollamaModel}
-                    onChange={(e) => setOptions((o) => ({ ...o, ollamaModel: e.target.value }))}
-                  >
-                    {(ollama?.models || [options.ollamaModel]).map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <span className="pill bad">Ollama offline — library only</span>
               )}
             </div>
 
@@ -332,7 +347,7 @@ export default function App() {
                 disabled={!canGenerate || busy}
                 onClick={parseAndGenerate}
               >
-                {busy ? 'Generating all…' : 'Generate full PFMEA'}
+                {busy ? 'Generating package…' : 'Generate PFMEA + CP + WI'}
               </button>
               {step === 'review' && (
                 <button type="button" className="secondary" onClick={() => setStep('upload')}>
@@ -340,10 +355,6 @@ export default function App() {
                 </button>
               )}
             </div>
-            <p className="note">
-              Drop your MPP BOP&amp;BOE report sheet, keep “Generate all ops” on, then generate —
-              every station/operation gets PFMEA rows from the library.
-            </p>
           </div>
         </aside>
 
@@ -351,27 +362,21 @@ export default function App() {
           {step === 'upload' && !plan && (
             <>
               <div className="panel-h">
-                <h2>How it works</h2>
+                <h2>Requirements coverage (Phase 1A)</h2>
               </div>
               <div className="panel-b stack">
                 <p className="note">
-                  1. Upload the full MPP BOP/BOE Excel (Teamcenter export) — stations, ops, machines,
-                  parts in one sheet.
-                  <br />
-                  2. Optionally upload your failure-mode library (or use the built-in sample).
-                  <br />
-                  3. Generate creates PFMEA rows for <strong>all</strong> operations, then you edit
-                  and export Excel.
-                  <br />
-                  4. Later: same generator takes live MPP API without rewriting core logic.
+                  From your PFMEA requirements: MPP holds BOE + BOP for all stations. This app
+                  generates <strong>PFMEA, Control Plan, and WI drafts</strong> directly from that
+                  document (PFD skipped; same sequence IDs across docs). Process-type library +
+                  optional AI fill failure modes. Export the editable Excel package. Change log
+                  records edits (approval workflow stubbed for later).
                 </p>
                 <p className="note">
-                  Demo sheet:{' '}
+                  Demo:{' '}
                   <a href="/samples/demo-mpp-bop-boe.xlsx">demo-mpp-bop-boe.xlsx</a>
                   {' · '}
                   <a href="/samples/failure-mode-library.xlsx">library.xlsx</a>
-                  {' · '}
-                  <a href="/samples/blank-pfmea-template.xlsx">blank PFMEA</a>
                 </p>
               </div>
             </>
@@ -380,7 +385,7 @@ export default function App() {
           {plan && (
             <>
               <div className="panel-h">
-                <h2>{step === 'review' ? 'PFMEA review' : 'Parsed process'}</h2>
+                <h2>Quality package</h2>
                 <span className="meta">{plan.sourceLabel}</span>
               </div>
               <div className="panel-b stack">
@@ -395,23 +400,33 @@ export default function App() {
                   </div>
                   <div className="stat">
                     <div className="v">{rows.length}</div>
-                    <div className="k">PFMEA rows</div>
+                    <div className="k">PFMEA</div>
                   </div>
                   <div className="stat">
-                    <div className="v">{library.length}</div>
-                    <div className="k">Library</div>
+                    <div className="v">{controlPlan.length}</div>
+                    <div className="k">CP rows</div>
                   </div>
                 </div>
 
-                {plan.warnings.length > 0 && (
-                  <div className="stack">
-                    {plan.warnings.map((w) => (
-                      <p key={w} className="note warn">
-                        {w}
-                      </p>
-                    ))}
-                  </div>
-                )}
+                <div className="flow" style={{ marginTop: 0 }}>
+                  {(
+                    [
+                      ['pfmea', `PFMEA (${rows.length})`],
+                      ['cp', `Control Plan (${controlPlan.length})`],
+                      ['wi', `WI (${workInstructions.length})`],
+                      ['changes', `Changes (${changeLog.length})`],
+                    ] as [Tab, string][]
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`flow-step ${tab === id ? 'active' : ''}`}
+                      onClick={() => setTab(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="station-list">
                   {stationSummary.map((s) => (
@@ -429,7 +444,7 @@ export default function App() {
                 {step === 'review' && (
                   <div className="btn-row">
                     <button type="button" className="primary" onClick={onExport}>
-                      Export PFMEA Excel
+                      Export quality package Excel
                     </button>
                     <button
                       type="button"
@@ -443,7 +458,7 @@ export default function App() {
                 )}
               </div>
 
-              {step === 'review' && rows.length > 0 && (
+              {step === 'review' && tab === 'pfmea' && (
                 <div className="table-wrap">
                   <table className="pfmea">
                     <thead>
@@ -455,15 +470,11 @@ export default function App() {
                         <th>Failure mode</th>
                         <th>Effect</th>
                         <th>SEV</th>
-                        <th>Cause</th>
                         <th>OCC</th>
-                        <th>Prevention</th>
-                        <th>Detection ctrl</th>
                         <th>DET</th>
                         <th>RPN</th>
                         <th>AP</th>
-                        <th>Actions</th>
-                        <th>Src</th>
+                        <th>Type</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -476,21 +487,21 @@ export default function App() {
                             <textarea
                               rows={2}
                               value={r.requirement}
-                              onChange={(e) => updateRow(r.id, { requirement: e.target.value })}
+                              onChange={(e) => updatePfmea(r.id, 'requirement', e.target.value)}
                             />
                           </td>
                           <td>
                             <textarea
                               rows={2}
                               value={r.failureMode}
-                              onChange={(e) => updateRow(r.id, { failureMode: e.target.value })}
+                              onChange={(e) => updatePfmea(r.id, 'failureMode', e.target.value)}
                             />
                           </td>
                           <td>
                             <textarea
                               rows={2}
                               value={r.failureEffect}
-                              onChange={(e) => updateRow(r.id, { failureEffect: e.target.value })}
+                              onChange={(e) => updatePfmea(r.id, 'failureEffect', e.target.value)}
                             />
                           </td>
                           <td>
@@ -501,15 +512,8 @@ export default function App() {
                               max={10}
                               value={r.severity}
                               onChange={(e) =>
-                                updateRow(r.id, { severity: Number(e.target.value) || 1 })
+                                updatePfmea(r.id, 'severity', Number(e.target.value) || 1)
                               }
-                            />
-                          </td>
-                          <td>
-                            <textarea
-                              rows={2}
-                              value={r.cause}
-                              onChange={(e) => updateRow(r.id, { cause: e.target.value })}
                             />
                           </td>
                           <td>
@@ -520,25 +524,7 @@ export default function App() {
                               max={10}
                               value={r.occurrence}
                               onChange={(e) =>
-                                updateRow(r.id, { occurrence: Number(e.target.value) || 1 })
-                              }
-                            />
-                          </td>
-                          <td>
-                            <textarea
-                              rows={2}
-                              value={r.preventionControl}
-                              onChange={(e) =>
-                                updateRow(r.id, { preventionControl: e.target.value })
-                              }
-                            />
-                          </td>
-                          <td>
-                            <textarea
-                              rows={2}
-                              value={r.detectionControl}
-                              onChange={(e) =>
-                                updateRow(r.id, { detectionControl: e.target.value })
+                                updatePfmea(r.id, 'occurrence', Number(e.target.value) || 1)
                               }
                             />
                           </td>
@@ -550,7 +536,7 @@ export default function App() {
                               max={10}
                               value={r.detection}
                               onChange={(e) =>
-                                updateRow(r.id, { detection: Number(e.target.value) || 1 })
+                                updatePfmea(r.id, 'detection', Number(e.target.value) || 1)
                               }
                             />
                           </td>
@@ -558,16 +544,153 @@ export default function App() {
                           <td>
                             <span className={`ap ${r.actionPriority}`}>{r.actionPriority}</span>
                           </td>
+                          <td className="src">{r.processType}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {step === 'review' && tab === 'cp' && (
+                <div className="table-wrap">
+                  <table className="pfmea">
+                    <thead>
+                      <tr>
+                        <th>Seq</th>
+                        <th>WI #</th>
+                        <th>Sl</th>
+                        <th>Process characteristic</th>
+                        <th>Product</th>
+                        <th>Class</th>
+                        <th>Spec</th>
+                        <th>Method</th>
+                        <th>Control</th>
+                        <th>Reaction</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {controlPlan.map((r) => (
+                        <tr key={r.id}>
+                          <td>{r.operationSequence}</td>
+                          <td>{r.wiNumber}</td>
+                          <td>{r.slNo}</td>
                           <td>
                             <textarea
                               rows={2}
-                              value={r.recommendedActions}
+                              value={r.processCharacteristic}
                               onChange={(e) =>
-                                updateRow(r.id, { recommendedActions: e.target.value })
+                                updateCp(r.id, 'processCharacteristic', e.target.value)
                               }
                             />
                           </td>
-                          <td className="src">{r.source}</td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              value={r.productCharacteristic}
+                              onChange={(e) =>
+                                updateCp(r.id, 'productCharacteristic', e.target.value)
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="num"
+                              value={r.specialClass}
+                              onChange={(e) => updateCp(r.id, 'specialClass', e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              value={r.specification}
+                              onChange={(e) => updateCp(r.id, 'specification', e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              value={r.evaluationMethod}
+                              onChange={(e) => updateCp(r.id, 'evaluationMethod', e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              value={r.controlMethod}
+                              onChange={(e) => updateCp(r.id, 'controlMethod', e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              value={r.reactionPlan}
+                              onChange={(e) => updateCp(r.id, 'reactionPlan', e.target.value)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {step === 'review' && tab === 'wi' && (
+                <div className="panel-b stack">
+                  {workInstructions.map((doc) => (
+                    <div key={doc.id} className="station-item">
+                      <strong>
+                        {doc.documentNumber} · {doc.operationSequence} — {doc.operationDescription}
+                      </strong>
+                      <small>
+                        Rev {doc.revLevel} · {doc.steps.length} steps ·{' '}
+                        {doc.equipment.join('; ') || 'no BOE equipment'}
+                      </small>
+                      <ol style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: '0.85rem' }}>
+                        {doc.steps.map((s) => (
+                          <li key={s.operationId + s.stepNo}>
+                            {s.instruction}
+                            <div className="note">
+                              Tools: {s.tools} · Check: {s.qualityCheck}
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                      <p className="note">{doc.reactionRules}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {step === 'review' && tab === 'changes' && (
+                <div className="table-wrap">
+                  <table className="pfmea">
+                    <thead>
+                      <tr>
+                        <th>When</th>
+                        <th>Who</th>
+                        <th>Where</th>
+                        <th>Field</th>
+                        <th>Before</th>
+                        <th>After</th>
+                        <th>Approval</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {changeLog.length === 0 && (
+                        <tr>
+                          <td colSpan={7}>No edits yet — changes appear when you edit PFMEA/CP.</td>
+                        </tr>
+                      )}
+                      {changeLog.map((e) => (
+                        <tr key={e.id}>
+                          <td className="src">{e.at}</td>
+                          <td>{e.who}</td>
+                          <td>{e.where}</td>
+                          <td>{e.field}</td>
+                          <td>{e.before}</td>
+                          <td>{e.after}</td>
+                          <td>{e.approvalStatus}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -580,9 +703,9 @@ export default function App() {
       </div>
 
       <div className="footer-note">
-        Upload your full MPP BOP/BOE sheet → generate all stations/ops → edit → export. Adapters:{' '}
-        <code>MPP Excel</code> / <code>PDF</code> / future <code>API</code> → same{' '}
-        <code>ProcessPlan</code> generator.
+        Requirements Phase 1A: BOP/BOE → PFMEA + CP + WI · process-type library · optional AI ·
+        shared sequence IDs · change log · Excel package export. Phase 2: live MPP API + 8D →
+        OCC/DET for Action Priority.
       </div>
     </div>
   )

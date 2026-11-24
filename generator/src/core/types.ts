@@ -59,11 +59,69 @@ export interface PfmeaRow {
   operationId: string
 }
 
+/** Control Plan row — aligned to AE VL CP columns (simplified for MVP). */
+export interface ControlPlanRow {
+  id: string
+  operationSequence: string
+  operationDescription: string
+  wiNumber: string
+  equipment: string
+  slNo: number
+  productCharacteristic: string
+  processCharacteristic: string
+  specialClass: string
+  specification: string
+  evaluationMethod: string
+  sampleSize: string
+  frequency: string
+  responsibility: string
+  capability: string
+  controlMethod: string
+  reactionPlan: string
+  stationId: string
+  operationId: string
+}
+
+/** Work Instruction draft per station. */
+export interface WorkInstruction {
+  id: string
+  documentNumber: string
+  revLevel: string
+  operationSequence: string
+  operationDescription: string
+  stationId: string
+  partName: string
+  drawingNumber: string
+  equipment: string[]
+  steps: {
+    stepNo: number
+    instruction: string
+    tools: string
+    qualityCheck: string
+    operationId: string
+  }[]
+  safetyNotes: string
+  reactionRules: string
+}
+
+export interface ChangeLogEntry {
+  id: string
+  at: string
+  who: string
+  where: string
+  field: string
+  before: string
+  after: string
+  approvalStatus: 'draft' | 'pending' | 'approved'
+}
+
 export interface GenerateOptions {
   useOllama: boolean
   ollamaModel: string
   includeMoveSteps: boolean
   maxOpsPerStation?: number
+  generateControlPlan: boolean
+  generateWorkInstructions: boolean
 }
 
 export interface GenerateContext {

@@ -1,11 +1,6 @@
-Primary inputs (MVP):
-  sample-bop.pdf — Bill of Process (stations + OP lines)
-  sample-boe.pdf — Bill of Equipment (stations + EQUIPMENT lines)
-  sample-bop-boe-combined.pdf — single combined PDF
-Library:
-  failure-mode-library.xlsx — editable company library
-Optional alternate adapter:
-  demo-mpp-bop-boe.xlsx — Teamcenter MPP Excel export (same generator core)
-  blank-pfmea-template.xlsx — empty PFMEA column layout
-
-PDF limitation: digital text PDFs only. Scanned/image PDFs need OCR before upload.
+demo-mpp-bop-boe.xlsx — full Teamcenter MPP BOP+BOE (primary input)
+failure-mode-library.xlsx — process-type failure library
+blank-pfmea-template.xlsx — empty PFMEA headers
+pfmea-ranking.xlsx — plant SEV/OCC/DET ranking reference
+sample-bop.pdf / sample-boe.pdf / sample-bop-boe-combined.pdf — optional PDF inputs
+reference/AE-H-GB-WI-010.xlsx — WI template reference (AE-H-GB-WI-###)
