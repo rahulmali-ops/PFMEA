@@ -433,3 +433,35 @@ table.pfmea .num {
   background: var(--paper-2);
   padding: 1px 5px;
 }
+
+.op-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  max-height: 140px;
+  overflow: auto;
+}
+
+.suggest {
+  display: grid;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.suggest-peek {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.legend {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+table.pfmea textarea::placeholder,
+table.pfmea input::placeholder {
+  color: #a8a29a;
+  font-style: italic;
+}

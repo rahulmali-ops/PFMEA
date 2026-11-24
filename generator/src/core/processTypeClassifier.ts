@@ -44,9 +44,13 @@ const RULES: { type: ProcessType; patterns: RegExp[] }[] = [
 ]
 
 export function classifyProcessType(operationName: string, stationName = ''): ProcessType {
-  const text = `${operationName} ${stationName}`
+  // Prefer the operation wording so station names (e.g. "OIL BOLT ASSEMBLY")
+  // do not override clear loading / scan / move steps.
   for (const rule of RULES) {
-    if (rule.patterns.some((p) => p.test(text))) return rule.type
+    if (rule.patterns.some((p) => p.test(operationName))) return rule.type
+  }
+  for (const rule of RULES) {
+    if (rule.patterns.some((p) => p.test(stationName))) return rule.type
   }
   return 'General Process'
 }

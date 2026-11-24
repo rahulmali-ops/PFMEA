@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { parseBopBoePdfs, parseMppExcelFile, type ProcessPlan } from './adapters'
-import { recomputeRow } from './core/generator'
+import { applySuggestions, recomputeRow } from './core/generator'
 import { generateQualityPackage, logChange } from './core/qualityPackage'
 import type {
   ChangeLogEntry,
@@ -9,13 +9,14 @@ import type {
   GenerateOptions,
   LibraryEntry,
   PfmeaRow,
+  PfmeaSuggestions,
   WorkInstruction,
 } from './core/types'
 import { downloadBlob, exportQualityPackage } from './lib/exportPackage'
 import { getDefaultLibrary, parseLibraryFile } from './lib/libraryExcel'
 import { fetchOllamaStatus, type OllamaStatus } from './lib/ollama'
 
-type Step = 'upload' | 'review'
+type Step = 'upload' | 'stations' | 'review'
 type Tab = 'pfmea' | 'cp' | 'wi' | 'changes'
 
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
       name: s.name,
       ops: s.operations.length,
       eq: s.equipment.length,
+      operations: s.operations.map((o) => o.name),
     }))
   }, [plan])
 
@@ -102,7 +104,8 @@ export default function App() {
     }
   }
 
-  async function parseAndGenerate() {
+  /** Step 1 — extract stations/ops from BOP only */
+  async function extractStations() {
     setBusy(true)
     setError(null)
     try {
@@ -110,15 +113,32 @@ export default function App() {
         ? await parseMppExcelFile(mppFile)
         : await parseBopBoePdfs({ bop: bopFile, boe: boeFile, combined: combinedFile })
       setPlan(nextPlan)
-      const pkg = await generateQualityPackage({ plan: nextPlan, library, options })
+      setRows([])
+      setControlPlan([])
+      setWorkInstructions([])
+      setChangeLog([])
+      setStep('stations')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Parse failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Step 2 — auto: requirements + process type + failure modes; rest blank + suggestions */
+  async function buildPfmeaSkeleton() {
+    if (!plan) return
+    setBusy(true)
+    setError(null)
+    try {
+      const pkg = await generateQualityPackage({ plan, library, options })
       setRows(pkg.pfmea)
       setControlPlan(pkg.controlPlan)
       setWorkInstructions(pkg.workInstructions)
-      setChangeLog([])
       setTab('pfmea')
       setStep('review')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Generate failed')
+      setError(e instanceof Error ? e.message : 'PFMEA build failed')
     } finally {
       setBusy(false)
     }
@@ -129,7 +149,7 @@ export default function App() {
       prev.map((r) => {
         if (r.id !== id) return r
         const before = String(r[field] ?? '')
-        const next = recomputeRow({ ...r, [field]: value, source: 'manual' })
+        const next = recomputeRow({ ...r, [field]: value, source: 'manual' } as PfmeaRow)
         setChangeLog((log) =>
           logChange(log, {
             who: 'analyst',
@@ -137,6 +157,25 @@ export default function App() {
             field: String(field),
             before,
             after: String(value),
+          }),
+        )
+        return next
+      }),
+    )
+  }
+
+  function onApplySuggestion(id: string, fields?: (keyof PfmeaSuggestions)[]) {
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r
+        const next = applySuggestions(r, fields)
+        setChangeLog((log) =>
+          logChange(log, {
+            who: 'analyst',
+            where: `PFMEA · ${r.operationSequence} · S${r.sNo}`,
+            field: fields?.join(',') || 'all suggestions',
+            before: '(blank)',
+            after: 'applied library suggestion',
           }),
         )
         return next
@@ -174,7 +213,7 @@ export default function App() {
     downloadBlob(blob, `QualityPackage-${plan.line.name.replace(/\s+/g, '-')}.xlsx`)
   }
 
-  const canGenerate = !!mppFile || !!combinedFile || !!bopFile || !!boeFile
+  const canExtract = !!mppFile || !!combinedFile || !!bopFile || !!boeFile
   const totalOps = plan ? plan.line.stations.reduce((n, s) => n + s.operations.length, 0) : 0
 
   return (
@@ -184,20 +223,20 @@ export default function App() {
           PFMEA <span>Generator</span>
         </h1>
         <p className="lede">
-          Phase 1A from requirements: upload full MPP BOP/BOE → generate{' '}
-          <strong>PFMEA + Control Plan + Work Instructions</strong> using the process-type failure
-          library (optional Ollama). Shared station sequence stays consistent; edit with a change
-          log; export the quality package Excel.
+          Guided flow: extract <strong>stations from BOP</strong> → auto-fill sequence-wise{' '}
+          <strong>requirements</strong>, <strong>process type</strong>, and{' '}
+          <strong>failure modes</strong> → you complete effects, ratings, and controls manually
+          (library offers suggestions only).
         </p>
         <div className="flow">
           <div className={`flow-step ${step === 'upload' ? 'active' : ''}`}>
-            <span className="n">01</span> Upload BOP/BOE + library
+            <span className="n">01</span> Upload BOP/BOE
+          </div>
+          <div className={`flow-step ${step === 'stations' ? 'active' : ''}`}>
+            <span className="n">02</span> Stations from BOP
           </div>
           <div className={`flow-step ${step === 'review' ? 'active' : ''}`}>
-            <span className="n">02</span> Review PFMEA / CP / WI
-          </div>
-          <div className="flow-step">
-            <span className="n">03</span> Export package
+            <span className="n">03</span> PFMEA (auto + manual)
           </div>
         </div>
       </header>
@@ -206,20 +245,20 @@ export default function App() {
         <aside className="panel">
           <div className="panel-h">
             <h2>Inputs</h2>
-            <span className="meta">MPP → PFMEA + CP + WI</span>
+            <span className="meta">BOP first → guided PFMEA</span>
           </div>
           <div className="panel-b stack">
             <div className="btn-row">
-              <button type="button" className="primary" onClick={loadDemoMpp} disabled={busy}>
+              <button type="button" className="secondary" onClick={loadDemoMpp} disabled={busy}>
                 Load demo MPP + library
               </button>
             </div>
 
             <label className="field">
-              MPP BOP/BOE Excel (full sheet)
+              MPP BOP/BOE Excel
               <div className="drop">
-                <strong>Teamcenter BOP + BOE report</strong>
-                <span>Generate all stations / operations</span>
+                <strong>Full Teamcenter sheet</strong>
+                <span>Stations & operations extracted first</span>
                 <input
                   type="file"
                   accept=".xlsx,.xlsm,.xls"
@@ -241,7 +280,7 @@ export default function App() {
               Failure-mode library (Excel)
               <div className="drop">
                 <strong>{libraryLabel}</strong>
-                <span>Process type → standard failure modes (requirements § PFMEA Automation)</span>
+                <span>Used to auto process type + failure modes; other fields = suggestions</span>
                 <input
                   type="file"
                   accept=".xlsx,.xlsm,.xls"
@@ -275,17 +314,6 @@ export default function App() {
                     }}
                   />
                 </label>
-                <label className="field">
-                  Combined PDF
-                  <input
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    onChange={(e) => {
-                      setCombinedFile(e.target.files?.[0] || null)
-                      if (e.target.files?.[0]) setMppFile(null)
-                    }}
-                  />
-                </label>
               </div>
             </details>
 
@@ -297,29 +325,7 @@ export default function App() {
                   checked={options.includeMoveSteps}
                   onChange={(e) => setOptions((o) => ({ ...o, includeMoveSteps: e.target.checked }))}
                 />
-                <label htmlFor="moves">Generate all ops (include move / transfer)</label>
-              </div>
-              <div className="toggle">
-                <input
-                  id="cp"
-                  type="checkbox"
-                  checked={options.generateControlPlan}
-                  onChange={(e) =>
-                    setOptions((o) => ({ ...o, generateControlPlan: e.target.checked }))
-                  }
-                />
-                <label htmlFor="cp">Generate Control Plan</label>
-              </div>
-              <div className="toggle">
-                <input
-                  id="wi"
-                  type="checkbox"
-                  checked={options.generateWorkInstructions}
-                  onChange={(e) =>
-                    setOptions((o) => ({ ...o, generateWorkInstructions: e.target.checked }))
-                  }
-                />
-                <label htmlFor="wi">Generate Work Instructions</label>
+                <label htmlFor="moves">Include move / transfer ops</label>
               </div>
               <div className="toggle">
                 <input
@@ -329,35 +335,63 @@ export default function App() {
                   disabled={!ollama?.available}
                   onChange={(e) => setOptions((o) => ({ ...o, useOllama: e.target.checked }))}
                 />
-                <label htmlFor="ollama">Ollama AI assist for failure modes</label>
+                <label htmlFor="ollama">Local Ollama for process type / FM assist</label>
               </div>
               {ollama?.available ? (
-                <span className="pill ok">Local Ollama · 127.0.0.1:11434</span>
+                <span className="pill ok">Local Ollama ready</span>
               ) : (
                 <span className="pill bad">Local Ollama offline — library only</span>
               )}
-              <p className="note">
-                AI uses Ollama on <code>localhost</code> only (no server proxy). For browser access:
-                set <code>OLLAMA_ORIGINS</code> to your app origin, then <code>ollama serve</code>.
-              </p>
             </div>
 
             {error && <p className="note warn">{error}</p>}
 
             <div className="btn-row">
-              <button
-                type="button"
-                className="primary"
-                disabled={!canGenerate || busy}
-                onClick={parseAndGenerate}
-              >
-                {busy ? 'Generating package…' : 'Generate PFMEA + CP + WI'}
-              </button>
-              {step === 'review' && (
-                <button type="button" className="secondary" onClick={() => setStep('upload')}>
-                  Back
+              {step === 'upload' && (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!canExtract || busy}
+                  onClick={extractStations}
+                >
+                  {busy ? 'Extracting…' : '1. Extract stations from BOP'}
                 </button>
               )}
+              {step === 'stations' && (
+                <>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={busy || !plan}
+                    onClick={buildPfmeaSkeleton}
+                  >
+                    {busy ? 'Building…' : '2. Auto-fill req / type / failure modes'}
+                  </button>
+                  <button type="button" className="secondary" onClick={() => setStep('upload')}>
+                    Back
+                  </button>
+                </>
+              )}
+              {step === 'review' && (
+                <>
+                  <button type="button" className="primary" onClick={onExport}>
+                    Export Excel
+                  </button>
+                  <button type="button" className="secondary" onClick={() => setStep('stations')}>
+                    Back to stations
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="legend stack">
+              <p className="note">
+                <strong>Auto:</strong> Seq, Operation, Requirement, Process type, Failure mode
+              </p>
+              <p className="note">
+                <strong>Manual:</strong> Effect, SEV/OCC/DET, Cause, Controls, Actions — use
+                “Apply suggestion” if helpful
+              </p>
             </div>
           </div>
         </aside>
@@ -366,30 +400,26 @@ export default function App() {
           {step === 'upload' && !plan && (
             <>
               <div className="panel-h">
-                <h2>Requirements coverage (Phase 1A)</h2>
+                <h2>How PFMEA is built</h2>
               </div>
               <div className="panel-b stack">
                 <p className="note">
-                  From your PFMEA requirements: MPP holds BOE + BOP for all stations. This app
-                  generates <strong>PFMEA, Control Plan, and WI drafts</strong> directly from that
-                  document (PFD skipped; same sequence IDs across docs). Process-type library +
-                  optional AI fill failure modes. Export the editable Excel package. Change log
-                  records edits (approval workflow stubbed for later).
-                </p>
-                <p className="note">
-                  Demo:{' '}
-                  <a href="/samples/demo-mpp-bop-boe.xlsx">demo-mpp-bop-boe.xlsx</a>
-                  {' · '}
-                  <a href="/samples/failure-mode-library.xlsx">library.xlsx</a>
+                  1. Parse BOP → list every station and operation.
+                  <br />
+                  2. For each op, auto-populate the sequence-wise <em>requirement</em>, classify{' '}
+                  <em>process type</em>, and pull <em>potential failure modes</em> from your library
+                  (optional local Ollama).
+                  <br />
+                  3. Everything else stays blank for you — library values show only as suggestions.
                 </p>
               </div>
             </>
           )}
 
-          {plan && (
+          {plan && step === 'stations' && (
             <>
               <div className="panel-h">
-                <h2>Quality package</h2>
+                <h2>Stations from BOP</h2>
                 <span className="meta">{plan.sourceLabel}</span>
               </div>
               <div className="panel-b stack">
@@ -403,12 +433,64 @@ export default function App() {
                     <div className="k">Operations</div>
                   </div>
                   <div className="stat">
-                    <div className="v">{rows.length}</div>
-                    <div className="k">PFMEA</div>
+                    <div className="v">{library.length}</div>
+                    <div className="k">Library</div>
                   </div>
                   <div className="stat">
-                    <div className="v">{controlPlan.length}</div>
-                    <div className="k">CP rows</div>
+                    <div className="v">—</div>
+                    <div className="k">PFMEA next</div>
+                  </div>
+                </div>
+                <p className="note">
+                  Review stations below, then continue to auto-fill requirements, process types, and
+                  failure modes.
+                </p>
+                <div className="station-list">
+                  {stationSummary.map((s) => (
+                    <div key={s.code + s.name} className="station-item">
+                      <strong>
+                        {s.code} — {s.name}
+                      </strong>
+                      <small>
+                        {s.ops} ops · {s.eq} equipment
+                      </small>
+                      <ol className="op-list">
+                        {s.operations.map((name, i) => (
+                          <li key={i}>{name}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {plan && step === 'review' && (
+            <>
+              <div className="panel-h">
+                <h2>PFMEA workspace</h2>
+                <span className="meta">
+                  Auto columns locked-in · manual columns blank + suggestions
+                </span>
+              </div>
+              <div className="panel-b stack">
+                <div className="stats">
+                  <div className="stat">
+                    <div className="v">{plan.line.stations.length}</div>
+                    <div className="k">Stations</div>
+                  </div>
+                  <div className="stat">
+                    <div className="v">{totalOps}</div>
+                    <div className="k">Ops</div>
+                  </div>
+                  <div className="stat">
+                    <div className="v">{rows.length}</div>
+                    <div className="k">PFMEA rows</div>
+                  </div>
+                  <div className="stat">
+                    <div className="v">{rows.filter((r) => r.severity !== '').length}</div>
+                    <div className="k">Rated</div>
                   </div>
                 </div>
 
@@ -431,38 +513,9 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-
-                <div className="station-list">
-                  {stationSummary.map((s) => (
-                    <div key={s.code + s.name} className="station-item">
-                      <strong>
-                        {s.code} — {s.name}
-                      </strong>
-                      <small>
-                        {s.ops} ops · {s.eq} equipment
-                      </small>
-                    </div>
-                  ))}
-                </div>
-
-                {step === 'review' && (
-                  <div className="btn-row">
-                    <button type="button" className="primary" onClick={onExport}>
-                      Export quality package Excel
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={parseAndGenerate}
-                      disabled={busy}
-                    >
-                      Regenerate
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {step === 'review' && tab === 'pfmea' && (
+              {tab === 'pfmea' && (
                 <div className="table-wrap">
                   <table className="pfmea">
                     <thead>
@@ -470,15 +523,19 @@ export default function App() {
                         <th>Seq</th>
                         <th>Operation</th>
                         <th>S No</th>
-                        <th>Requirement</th>
-                        <th>Failure mode</th>
-                        <th>Effect</th>
+                        <th>Requirement (auto)</th>
+                        <th>Process type (auto)</th>
+                        <th>Failure mode (auto)</th>
+                        <th>Effect (manual)</th>
                         <th>SEV</th>
+                        <th>Cause</th>
                         <th>OCC</th>
+                        <th>Prevention</th>
+                        <th>Detection</th>
                         <th>DET</th>
                         <th>RPN</th>
                         <th>AP</th>
-                        <th>Type</th>
+                        <th>Suggestions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -494,6 +551,7 @@ export default function App() {
                               onChange={(e) => updatePfmea(r.id, 'requirement', e.target.value)}
                             />
                           </td>
+                          <td className="src">{r.processType}</td>
                           <td>
                             <textarea
                               rows={2}
@@ -504,6 +562,7 @@ export default function App() {
                           <td>
                             <textarea
                               rows={2}
+                              placeholder={r.suggestions.failureEffect || 'Enter effect…'}
                               value={r.failureEffect}
                               onChange={(e) => updatePfmea(r.id, 'failureEffect', e.target.value)}
                             />
@@ -514,10 +573,23 @@ export default function App() {
                               type="number"
                               min={1}
                               max={10}
+                              placeholder={String(r.suggestions.severity)}
                               value={r.severity}
                               onChange={(e) =>
-                                updatePfmea(r.id, 'severity', Number(e.target.value) || 1)
+                                updatePfmea(
+                                  r.id,
+                                  'severity',
+                                  e.target.value === '' ? '' : Number(e.target.value),
+                                )
                               }
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              placeholder={r.suggestions.cause || 'Enter cause…'}
+                              value={r.cause}
+                              onChange={(e) => updatePfmea(r.id, 'cause', e.target.value)}
                             />
                           </td>
                           <td>
@@ -526,9 +598,34 @@ export default function App() {
                               type="number"
                               min={1}
                               max={10}
+                              placeholder={String(r.suggestions.occurrence)}
                               value={r.occurrence}
                               onChange={(e) =>
-                                updatePfmea(r.id, 'occurrence', Number(e.target.value) || 1)
+                                updatePfmea(
+                                  r.id,
+                                  'occurrence',
+                                  e.target.value === '' ? '' : Number(e.target.value),
+                                )
+                              }
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              placeholder={r.suggestions.preventionControl}
+                              value={r.preventionControl}
+                              onChange={(e) =>
+                                updatePfmea(r.id, 'preventionControl', e.target.value)
+                              }
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              rows={2}
+                              placeholder={r.suggestions.detectionControl}
+                              value={r.detectionControl}
+                              onChange={(e) =>
+                                updatePfmea(r.id, 'detectionControl', e.target.value)
                               }
                             />
                           </td>
@@ -538,17 +635,58 @@ export default function App() {
                               type="number"
                               min={1}
                               max={10}
+                              placeholder={String(r.suggestions.detection)}
                               value={r.detection}
                               onChange={(e) =>
-                                updatePfmea(r.id, 'detection', Number(e.target.value) || 1)
+                                updatePfmea(
+                                  r.id,
+                                  'detection',
+                                  e.target.value === '' ? '' : Number(e.target.value),
+                                )
                               }
                             />
                           </td>
-                          <td className="num">{r.rpn}</td>
+                          <td className="num">{r.rpn === '' ? '—' : r.rpn}</td>
                           <td>
-                            <span className={`ap ${r.actionPriority}`}>{r.actionPriority}</span>
+                            {r.actionPriority ? (
+                              <span className={`ap ${r.actionPriority}`}>{r.actionPriority}</span>
+                            ) : (
+                              '—'
+                            )}
                           </td>
-                          <td className="src">{r.processType}</td>
+                          <td>
+                            <div className="suggest">
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() => onApplySuggestion(r.id)}
+                                title="Fill all manual fields from library suggestion"
+                              >
+                                Apply all
+                              </button>
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() =>
+                                  onApplySuggestion(r.id, [
+                                    'failureEffect',
+                                    'severity',
+                                    'cause',
+                                    'occurrence',
+                                    'preventionControl',
+                                    'detectionControl',
+                                    'detection',
+                                  ])
+                                }
+                              >
+                                Ratings+text
+                              </button>
+                              <div className="suggest-peek">
+                                S{r.suggestions.severity}/O{r.suggestions.occurrence}/D
+                                {r.suggestions.detection}
+                              </div>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -556,7 +694,7 @@ export default function App() {
                 </div>
               )}
 
-              {step === 'review' && tab === 'cp' && (
+              {tab === 'cp' && (
                 <div className="table-wrap">
                   <table className="pfmea">
                     <thead>
@@ -567,8 +705,6 @@ export default function App() {
                         <th>Process characteristic</th>
                         <th>Product</th>
                         <th>Class</th>
-                        <th>Spec</th>
-                        <th>Method</th>
                         <th>Control</th>
                         <th>Reaction</th>
                       </tr>
@@ -588,43 +724,9 @@ export default function App() {
                               }
                             />
                           </td>
-                          <td>
-                            <textarea
-                              rows={2}
-                              value={r.productCharacteristic}
-                              onChange={(e) =>
-                                updateCp(r.id, 'productCharacteristic', e.target.value)
-                              }
-                            />
-                          </td>
-                          <td>
-                            <input
-                              className="num"
-                              value={r.specialClass}
-                              onChange={(e) => updateCp(r.id, 'specialClass', e.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <textarea
-                              rows={2}
-                              value={r.specification}
-                              onChange={(e) => updateCp(r.id, 'specification', e.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <textarea
-                              rows={2}
-                              value={r.evaluationMethod}
-                              onChange={(e) => updateCp(r.id, 'evaluationMethod', e.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <textarea
-                              rows={2}
-                              value={r.controlMethod}
-                              onChange={(e) => updateCp(r.id, 'controlMethod', e.target.value)}
-                            />
-                          </td>
+                          <td>{r.productCharacteristic}</td>
+                          <td>{r.specialClass}</td>
+                          <td>{r.controlMethod}</td>
                           <td>
                             <textarea
                               rows={2}
@@ -639,7 +741,7 @@ export default function App() {
                 </div>
               )}
 
-              {step === 'review' && tab === 'wi' && (
+              {tab === 'wi' && (
                 <div className="panel-b stack">
                   {workInstructions.map((doc) => (
                     <div key={doc.id} className="station-item">
@@ -647,54 +749,41 @@ export default function App() {
                         {doc.documentNumber} · {doc.operationSequence} — {doc.operationDescription}
                       </strong>
                       <small>
-                        Rev {doc.revLevel} · {doc.steps.length} steps ·{' '}
-                        {doc.equipment.join('; ') || 'no BOE equipment'}
+                        {doc.steps.length} steps from BOP
                       </small>
-                      <ol style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: '0.85rem' }}>
+                      <ol className="op-list">
                         {doc.steps.map((s) => (
-                          <li key={s.operationId + s.stepNo}>
-                            {s.instruction}
-                            <div className="note">
-                              Tools: {s.tools} · Check: {s.qualityCheck}
-                            </div>
-                          </li>
+                          <li key={s.operationId + s.stepNo}>{s.instruction}</li>
                         ))}
                       </ol>
-                      <p className="note">{doc.reactionRules}</p>
                     </div>
                   ))}
                 </div>
               )}
 
-              {step === 'review' && tab === 'changes' && (
+              {tab === 'changes' && (
                 <div className="table-wrap">
                   <table className="pfmea">
                     <thead>
                       <tr>
                         <th>When</th>
-                        <th>Who</th>
                         <th>Where</th>
                         <th>Field</th>
-                        <th>Before</th>
                         <th>After</th>
-                        <th>Approval</th>
                       </tr>
                     </thead>
                     <tbody>
                       {changeLog.length === 0 && (
                         <tr>
-                          <td colSpan={7}>No edits yet — changes appear when you edit PFMEA/CP.</td>
+                          <td colSpan={4}>Edits and applied suggestions appear here.</td>
                         </tr>
                       )}
                       {changeLog.map((e) => (
                         <tr key={e.id}>
                           <td className="src">{e.at}</td>
-                          <td>{e.who}</td>
                           <td>{e.where}</td>
                           <td>{e.field}</td>
-                          <td>{e.before}</td>
                           <td>{e.after}</td>
-                          <td>{e.approvalStatus}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -707,9 +796,8 @@ export default function App() {
       </div>
 
       <div className="footer-note">
-        Requirements Phase 1A: BOP/BOE → PFMEA + CP + WI · process-type library · optional AI ·
-        shared sequence IDs · change log · Excel package export. Phase 2: live MPP API + 8D →
-        OCC/DET for Action Priority.
+        Auto from BOP/library: station sequence, requirements, process type, failure modes. Manual
+        with suggestions: effects, SEV/OCC/DET, causes, controls, actions.
       </div>
     </div>
   )

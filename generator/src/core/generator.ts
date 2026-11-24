@@ -6,64 +6,31 @@ import {
 } from './processTypeClassifier'
 import { matchLibrary } from '../lib/libraryExcel'
 import { classifyWithOllama, suggestFailureModesWithOllama } from '../lib/ollama'
-import type { GenerateContext, LibraryEntry, PfmeaRow } from './types'
+import type { GenerateContext, LibraryEntry, PfmeaRow, PfmeaSuggestions } from './types'
 
 function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`
 }
 
-function rowsFromEntries(
-  entries: LibraryEntry[],
-  meta: {
-    stationCode: string
-    stationName: string
-    stationId: string
-    opId: string
-    opName: string
-    processType: string
-    sNoStart: number
-    source: PfmeaRow['source']
-  },
-): PfmeaRow[] {
-  return entries.map((e, idx) => {
-    const severity = e.severity
-    const occurrence = e.occurrence
-    const detection = e.detection
-    const rpn = calcRpn(severity, occurrence, detection)
-    return {
-      id: uid('row'),
-      operationSequence: meta.stationCode,
-      operationDescription: meta.stationName,
-      sNo: meta.sNoStart + idx,
-      requirement: e.requirementHint
-        ? `${requirementFromOperation(meta.opName, meta.processType as never)} (${e.requirementHint})`
-        : requirementFromOperation(meta.opName, meta.processType as never),
-      processType: meta.processType,
-      failureMode: e.failureMode,
-      failureEffect: e.failureEffect,
-      severity,
-      classification: e.classification || '-',
-      cause: e.cause,
-      occurrence,
-      preventionControl: e.preventionControl,
-      detectionControl: e.detectionControl,
-      detection,
-      rpn,
-      actionPriority: calculateAP(severity, occurrence, detection),
-      recommendedActions: e.recommendedAction || '',
-      responsibility: '',
-      actionsTaken: '',
-      revSeverity: '',
-      revOccurrence: '',
-      revDetection: '',
-      revRpn: '',
-      source: meta.source,
-      stationId: meta.stationId,
-      operationId: meta.opId,
-    }
-  })
+function suggestionsFrom(entry: LibraryEntry): PfmeaSuggestions {
+  return {
+    failureEffect: entry.failureEffect || '',
+    severity: entry.severity || 5,
+    classification: entry.classification || '-',
+    cause: entry.cause || '',
+    occurrence: entry.occurrence || 2,
+    preventionControl: entry.preventionControl || '',
+    detectionControl: entry.detectionControl || '',
+    detection: entry.detection || 5,
+    recommendedActions: entry.recommendedAction || '',
+  }
 }
 
+/**
+ * Guided PFMEA skeleton from BOP stations/ops:
+ * AUTO — sequence, description, S No, requirement, process type, failure mode
+ * MANUAL (blank) — effect, SEV/OCC/DET, cause, controls, actions (library values kept as suggestions only)
+ */
 export async function generatePfmea(ctx: GenerateContext): Promise<{
   rows: PfmeaRow[]
   stats: { stations: number; operations: number; rows: number; ollamaUsed: boolean }
@@ -95,6 +62,7 @@ export async function generatePfmea(ctx: GenerateContext): Promise<{
         }
       }
 
+      const requirement = requirementFromOperation(op.name, processType)
       let entries = matchLibrary(library, processType, op.name)
       let source: PfmeaRow['source'] = 'library'
 
@@ -117,32 +85,54 @@ export async function generatePfmea(ctx: GenerateContext): Promise<{
         entries = [
           {
             processType,
-            failureMode: 'Process requirement not met',
-            failureEffect: 'ME: Quality / process risk',
+            failureMode: '',
+            failureEffect: '',
             severity: 5,
-            cause: 'SOP not followed',
+            cause: '',
             occurrence: 2,
-            preventionControl: 'SOP Adherence',
-            detectionControl: 'In station visual detection',
+            preventionControl: '',
+            detectionControl: '',
             detection: 5,
           },
         ]
         source = 'manual'
       }
 
-      const generated = rowsFromEntries(entries, {
-        stationCode: station.code,
-        stationName: station.name,
-        stationId: station.id,
-        opId: op.id,
-        opName: op.name,
-        processType,
-        sNoStart: globalSNo,
-        source,
-      })
-      // Collapse requirement display: first row keeps full requirement; keep all FMs
-      rows.push(...generated)
-      globalSNo += generated.length
+      // One PFMEA row per suggested failure mode; only FM (+ type/req/seq) auto-filled
+      for (const entry of entries) {
+        const sug = suggestionsFrom(entry)
+        rows.push({
+          id: uid('row'),
+          operationSequence: station.code,
+          operationDescription: station.name,
+          sNo: globalSNo++,
+          requirement,
+          processType,
+          failureMode: entry.failureMode,
+          // Manual fields — left blank for the analyst
+          failureEffect: '',
+          severity: '',
+          classification: '',
+          cause: '',
+          occurrence: '',
+          preventionControl: '',
+          detectionControl: '',
+          detection: '',
+          rpn: '',
+          actionPriority: '',
+          recommendedActions: '',
+          responsibility: '',
+          actionsTaken: '',
+          revSeverity: '',
+          revOccurrence: '',
+          revDetection: '',
+          revRpn: '',
+          source,
+          stationId: station.id,
+          operationId: op.id,
+          suggestions: sug,
+        })
+      }
     }
   }
 
@@ -158,14 +148,40 @@ export async function generatePfmea(ctx: GenerateContext): Promise<{
 }
 
 export function recomputeRow(row: PfmeaRow): PfmeaRow {
-  const rpn = calcRpn(row.severity, row.occurrence, row.detection)
+  const s = row.severity
+  const o = row.occurrence
+  const d = row.detection
+  if (s === '' || o === '' || d === '') {
+    return { ...row, rpn: '', actionPriority: '' }
+  }
+  const rpn = calcRpn(Number(s), Number(o), Number(d))
   return {
     ...row,
     rpn,
-    actionPriority: calculateAP(row.severity, row.occurrence, row.detection),
+    actionPriority: calculateAP(Number(s), Number(o), Number(d)),
     revRpn:
       row.revSeverity !== '' && row.revOccurrence !== '' && row.revDetection !== ''
         ? calcRpn(Number(row.revSeverity), Number(row.revOccurrence), Number(row.revDetection))
         : '',
   }
+}
+
+/** Apply one or all suggestion fields onto the manual columns. */
+export function applySuggestions(
+  row: PfmeaRow,
+  fields?: (keyof PfmeaSuggestions)[],
+): PfmeaRow {
+  const s = row.suggestions
+  const keys = fields || (Object.keys(s) as (keyof PfmeaSuggestions)[])
+  const next: PfmeaRow = { ...row, source: 'manual' }
+  for (const k of keys) {
+    if (k === 'severity' || k === 'occurrence' || k === 'detection') {
+      next[k] = s[k]
+    } else if (k === 'recommendedActions') {
+      next.recommendedActions = s.recommendedActions
+    } else {
+      next[k] = s[k]
+    }
+  }
+  return recomputeRow(next)
 }

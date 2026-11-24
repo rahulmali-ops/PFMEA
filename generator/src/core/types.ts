@@ -29,14 +29,8 @@ export interface LibraryEntry {
   keywords?: string
 }
 
-export interface PfmeaRow {
-  id: string
-  operationSequence: string
-  operationDescription: string
-  sNo: number
-  requirement: string
-  processType: string
-  failureMode: string
+/** Library hints for fields the analyst fills manually. */
+export interface PfmeaSuggestions {
   failureEffect: string
   severity: number
   classification: string
@@ -45,8 +39,32 @@ export interface PfmeaRow {
   preventionControl: string
   detectionControl: string
   detection: number
-  rpn: number
-  actionPriority: 'H' | 'M' | 'L'
+  recommendedActions: string
+}
+
+export interface PfmeaRow {
+  id: string
+  /** Auto from BOP station */
+  operationSequence: string
+  operationDescription: string
+  sNo: number
+  /** Auto from operation (sequence-wise requirement) */
+  requirement: string
+  /** Auto — process type categorization */
+  processType: string
+  /** Auto — from process-type library / AI */
+  failureMode: string
+  /** Manual — blank until analyst fills (suggestions available) */
+  failureEffect: string
+  severity: number | ''
+  classification: string
+  cause: string
+  occurrence: number | ''
+  preventionControl: string
+  detectionControl: string
+  detection: number | ''
+  rpn: number | ''
+  actionPriority: 'H' | 'M' | 'L' | ''
   recommendedActions: string
   responsibility: string
   actionsTaken: string
@@ -57,9 +75,10 @@ export interface PfmeaRow {
   source: 'library' | 'ollama' | 'manual'
   stationId: string
   operationId: string
+  /** Non-binding library/AI suggestions for manual fields */
+  suggestions: PfmeaSuggestions
 }
 
-/** Control Plan row — aligned to AE VL CP columns (simplified for MVP). */
 export interface ControlPlanRow {
   id: string
   operationSequence: string
@@ -82,7 +101,6 @@ export interface ControlPlanRow {
   operationId: string
 }
 
-/** Work Instruction draft per station. */
 export interface WorkInstruction {
   id: string
   documentNumber: string
