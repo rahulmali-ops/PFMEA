@@ -54,7 +54,7 @@ export interface PfmeaRow {
   processType: string
   /** Auto — from process-type library / AI */
   failureMode: string
-  /** Manual — blank until analyst fills (suggestions available) */
+  /** Auto — one effect paired with this failure mode (same count as FMs) */
   failureEffect: string
   severity: number | ''
   classification: string

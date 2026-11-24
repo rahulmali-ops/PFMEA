@@ -125,7 +125,7 @@ export default function App() {
     }
   }
 
-  /** Step 2 — auto: requirements + process type + failure modes; rest blank + suggestions */
+  /** Step 2 — auto: requirements + process type + FM/effect pairs; ratings blank + suggestions */
   async function buildPfmeaSkeleton() {
     if (!plan) return
     setBusy(true)
@@ -225,8 +225,8 @@ export default function App() {
         <p className="lede">
           BOP characteristics become PFMEA <strong>requirements</strong>. Expertise maps each to a{' '}
           <strong>process type</strong>; that type brings its library of{' '}
-          <strong>failure modes</strong>. Effects, ratings, and controls stay manual — suggestions
-          only.
+          <strong>failure modes</strong>, each with a paired <strong>failure effect</strong>. Ratings
+          and controls stay manual — suggestions only.
         </p>
         <div className="flow">
           <div className={`flow-step ${step === 'upload' ? 'active' : ''}`}>
@@ -280,7 +280,7 @@ export default function App() {
               Failure-mode library (Excel)
               <div className="drop">
                 <strong>{libraryLabel}</strong>
-                <span>Used to auto process type + failure modes; other fields = suggestions</span>
+                <span>Auto: process type + FM ↔ effect pairs; ratings/controls = suggestions</span>
                 <input
                   type="file"
                   accept=".xlsx,.xlsm,.xls"
@@ -390,11 +390,11 @@ export default function App() {
                 GUN TIGHTEN BOLT…”).
               </p>
               <p className="note">
-                <strong>Auto:</strong> Seq · Requirement · Process type · Failure modes (all for
-                that type)
+                <strong>Auto:</strong> Seq · Requirement · Process type · Failure mode + matching
+                effect (1:1, all FMs for that type)
               </p>
               <p className="note">
-                <strong>Manual + suggestions:</strong> Effect, SEV/OCC/DET, Cause, Controls, Actions
+                <strong>Manual + suggestions:</strong> SEV/OCC/DET, Cause, Controls, Actions
               </p>
             </div>
           </div>
@@ -413,9 +413,9 @@ export default function App() {
                   <br />
                   2. Each BOP characteristic is the PFMEA <em>requirement</em>; expertise assigns a{' '}
                   <em>process type</em>; the library attaches <em>all failure modes</em> for that
-                  type.
+                  type, each with its paired <em>failure effect</em> (same count).
                   <br />
-                  3. You fill effects, SEV/OCC/DET, causes, and controls — suggestions are optional.
+                  3. You fill SEV/OCC/DET, causes, and controls — suggestions are optional.
                 </p>
               </div>
             </>
@@ -448,7 +448,7 @@ export default function App() {
                 </div>
                 <p className="note">
                   Review stations below, then continue to auto-fill requirements, process types, and
-                  failure modes.
+                  failure mode / effect pairs.
                 </p>
                 <div className="station-list">
                   {stationSummary.map((s) => (
@@ -567,7 +567,6 @@ export default function App() {
                           <td>
                             <textarea
                               rows={2}
-                              placeholder={r.suggestions.failureEffect || 'Enter effect…'}
                               value={r.failureEffect}
                               onChange={(e) => updatePfmea(r.id, 'failureEffect', e.target.value)}
                             />
@@ -674,7 +673,6 @@ export default function App() {
                                 className="ghost"
                                 onClick={() =>
                                   onApplySuggestion(r.id, [
-                                    'failureEffect',
                                     'severity',
                                     'cause',
                                     'occurrence',
@@ -802,7 +800,7 @@ export default function App() {
 
       <div className="footer-note">
         Auto from BOP/library: station sequence, requirements, process type, failure modes. Manual
-        with suggestions: effects, SEV/OCC/DET, causes, controls, actions.
+        with suggestions: SEV/OCC/DET, causes, controls, actions.
       </div>
     </div>
   )

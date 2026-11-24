@@ -30,8 +30,8 @@ function suggestionsFrom(entry: LibraryEntry): PfmeaSuggestions {
  * Guided PFMEA from BOP:
  * - Requirement = BOP process characteristic / operation text (as on the sheet)
  * - Process type = expertise classifier (optional local Ollama override)
- * - Failure modes = all library modes for that process type (auto)
- * - Effect / SEV / OCC / DET / cause / controls = blank + suggestions only
+ * - One row per library FM for that type; each FM carries its paired failure effect (1:1)
+ * - SEV / OCC / DET / cause / controls = blank + suggestions only
  */
 export async function generatePfmea(ctx: GenerateContext): Promise<{
   rows: PfmeaRow[]
@@ -100,7 +100,7 @@ export async function generatePfmea(ctx: GenerateContext): Promise<{
         source = 'manual'
       }
 
-      // One PFMEA row per suggested failure mode; only FM (+ type/req/seq) auto-filled
+      // One PFMEA row per FM; each FM gets exactly one paired failure effect from the library
       for (const entry of entries) {
         const sug = suggestionsFrom(entry)
         rows.push({
@@ -111,8 +111,8 @@ export async function generatePfmea(ctx: GenerateContext): Promise<{
           requirement,
           processType,
           failureMode: entry.failureMode,
-          // Manual fields — left blank for the analyst
-          failureEffect: '',
+          failureEffect: entry.failureEffect || '',
+          // Ratings / causes / controls — left blank for the analyst
           severity: '',
           classification: '',
           cause: '',
